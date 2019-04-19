@@ -1,0 +1,30 @@
+metrics package
+===============
+
+Submodules
+----------
+
+metrics.Evaluator module
+------------------------
+
+.. automodule:: metrics.Evaluator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+metrics.conlleval module
+------------------------
+
+.. automodule:: metrics.conlleval
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: metrics
+    :members:
+    :undoc-members:
+    :show-inheritance:

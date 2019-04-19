@@ -1,0 +1,7 @@
+LearningMachine module
+======================
+
+.. automodule:: LearningMachine
+    :members:
+    :undoc-members:
+    :show-inheritance:

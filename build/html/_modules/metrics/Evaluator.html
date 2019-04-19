@@ -1,0 +1,560 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>metrics.Evaluator &mdash; NeuronBlocks 1.1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> NeuronBlocks
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Basic block_zoo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html#id15">Attention</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html#id25">embedding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html#id27">Operations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html#id31">Math</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html#id38">Transformer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html#id43">Encoder_Decoder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html#id47">Normalizations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html#id49">Loss Functions</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">NeuronBlocks</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>metrics.Evaluator</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for metrics.Evaluator</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) Microsoft Corporation. All rights reserved.</span>
+<span class="c1"># Licensed under the MIT license.</span>
+
+<span class="kn">from</span> <span class="nn">sklearn</span> <span class="k">import</span> <span class="n">metrics</span>
+<span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="k">import</span> <span class="n">mean_squared_error</span>
+<span class="kn">from</span> <span class="nn">.conlleval</span> <span class="k">import</span> <span class="n">countChunks</span><span class="p">,</span> <span class="n">evaluate</span><span class="p">,</span> <span class="n">to_conll_format</span>
+<span class="kn">from</span> <span class="nn">settings</span> <span class="k">import</span> <span class="n">TaggingSchemes</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">string</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">Counter</span>
+
+
+<div class="viewcode-block" id="Evaluator"><a class="viewcode-back" href="../../metrics.html#metrics.Evaluator.Evaluator">[docs]</a><span class="k">class</span> <span class="nc">Evaluator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">pos_label</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">first_metric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tagging_scheme</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label_indices</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            metrics:</span>
+<span class="sd">            pos_label: the positive label for auc metric</span>
+<span class="sd">            first_metric:</span>
+<span class="sd">            tagging_scheme:</span>
+<span class="sd">            label_indices: label to index dictionary, for auc@average or auc@some_type metric</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__metrics</span> <span class="o">=</span> <span class="n">metrics</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__pos_label</span> <span class="o">=</span> <span class="n">pos_label</span>
+        <span class="k">if</span> <span class="n">first_metric</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__first_metric</span> <span class="o">=</span> <span class="n">metrics</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__first_metric</span> <span class="o">=</span> <span class="n">first_metric</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__tagging_scheme</span> <span class="o">=</span> <span class="n">tagging_scheme</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__label_indices</span> <span class="o">=</span> <span class="n">label_indices</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">has_auc_type_specific</span> <span class="o">=</span> <span class="kc">False</span>      <span class="c1"># if True, the recorder needs to record the pred score of all types</span>
+        <span class="n">supported_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_supported_metrics</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">metric</span> <span class="ow">in</span> <span class="n">metrics</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">metric</span> <span class="ow">in</span> <span class="n">supported_metrics</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">metric</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;@&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                    <span class="n">field</span><span class="p">,</span> <span class="n">target</span> <span class="o">=</span> <span class="n">metric</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;@&#39;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">field</span> <span class="o">!=</span> <span class="s1">&#39;auc&#39;</span> <span class="ow">or</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__label_indices</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="n">target</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__label_indices</span><span class="p">)</span> <span class="ow">and</span> <span class="n">target</span> <span class="o">!=</span> <span class="s1">&#39;average&#39;</span><span class="p">):</span>
+                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;The metric </span><span class="si">%s</span><span class="s2"> is not supported. Supported metrics are: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">metric</span><span class="p">,</span> <span class="n">supported_metrics</span><span class="p">))</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">has_auc_type_specific</span> <span class="o">=</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="Evaluator.evaluate"><a class="viewcode-back" href="../../metrics.html#metrics.Evaluator.Evaluator.evaluate">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_pred_pos_score</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y_pred_scores_all</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">formatting</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; evalution</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            y_true:</span>
+<span class="sd">            y_pred:</span>
+<span class="sd">            y_pred_pos_score:</span>
+<span class="sd">            formatting:</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">metric</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__metrics</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">metric</span> <span class="o">==</span> <span class="s1">&#39;auc&#39;</span><span class="p">:</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">metric</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">metric</span><span class="p">)(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred_pos_score</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">metric</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;auc@&#39;</span><span class="p">):</span>
+                <span class="n">field</span><span class="p">,</span> <span class="n">target</span> <span class="o">=</span> <span class="n">metric</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;@&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">target</span> <span class="o">==</span> <span class="s1">&#39;average&#39;</span><span class="p">:</span>
+                    <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">y_pred_scores_all</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
+                        <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">auc</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">y_pred_scores_all</span><span class="p">)[:,</span> <span class="n">i</span><span class="p">]))</span>
+                    <span class="n">result</span><span class="p">[</span><span class="n">metric</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">result</span><span class="p">[</span><span class="n">metric</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">auc</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">y_pred_scores_all</span><span class="p">)[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__label_indices</span><span class="p">[</span><span class="n">target</span><span class="p">]])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">metric</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">metric</span><span class="p">)(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__last_result</span> <span class="o">=</span> <span class="n">result</span>
+        <span class="k">if</span> <span class="n">formatting</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">format_result</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="n">result</span>
+        <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="Evaluator.compare"><a class="viewcode-back" href="../../metrics.html#metrics.Evaluator.Evaluator.compare">[docs]</a>    <span class="k">def</span> <span class="nf">compare</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_result</span><span class="p">,</span> <span class="n">previous_result</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            current_result:</span>
+<span class="sd">            previous_result:</span>
+<span class="sd">            metric:</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            current better than previous: 1</span>
+<span class="sd">            current worse than previous: -1</span>
+<span class="sd">            current equal to previous: 0</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">previous_result</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="n">metric</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">metric</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__first_metric</span>
+
+        <span class="c1"># by default, metrics are the bigger, the better</span>
+        <span class="n">small_better_metrics</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;MSE&#39;</span><span class="p">,</span> <span class="s1">&#39;RMSE&#39;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">metric</span> <span class="ow">in</span> <span class="n">small_better_metrics</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">current_result</span> <span class="o">&gt;</span> <span class="n">previous_result</span><span class="p">:</span>
+                <span class="k">return</span> <span class="mi">1</span>
+            <span class="k">elif</span> <span class="n">current_result</span> <span class="o">&lt;</span> <span class="n">previous_result</span><span class="p">:</span>
+                <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">current_result</span> <span class="o">&gt;</span> <span class="n">previous_result</span><span class="p">:</span>
+                <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="k">elif</span> <span class="n">current_result</span> <span class="o">&lt;</span> <span class="n">previous_result</span><span class="p">:</span>
+                <span class="k">return</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="mi">0</span></div>
+
+<div class="viewcode-block" id="Evaluator.get_first_metric_result"><a class="viewcode-back" href="../../metrics.html#metrics.Evaluator.Evaluator.get_first_metric_result">[docs]</a>    <span class="k">def</span> <span class="nf">get_first_metric_result</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__last_result</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">__first_metric</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="Evaluator.get_supported_metrics"><a class="viewcode-back" href="../../metrics.html#metrics.Evaluator.Evaluator.get_supported_metrics">[docs]</a>    <span class="k">def</span> <span class="nf">get_supported_metrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">except_methods</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;evaluate&quot;</span><span class="p">,</span> <span class="s2">&quot;format_result&quot;</span><span class="p">,</span> <span class="s2">&quot;get_supported_metrics&quot;</span><span class="p">,</span> <span class="s2">&quot;get_first_metric_result&quot;</span><span class="p">,</span> <span class="s2">&quot;normalize_answer&quot;</span><span class="p">]</span>
+        <span class="n">supported_metrics</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span> <span class="ow">and</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">except_methods</span><span class="p">:</span>
+                <span class="n">supported_metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">supported_metrics</span></div>
+
+<div class="viewcode-block" id="Evaluator.format_result"><a class="viewcode-back" href="../../metrics.html#metrics.Evaluator.Evaluator.format_result">[docs]</a>    <span class="k">def</span> <span class="nf">format_result</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">result</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: </span><span class="si">%.6f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">metric</span><span class="p">,</span> <span class="n">result</span><span class="p">[</span><span class="n">metric</span><span class="p">])</span> <span class="k">for</span> <span class="n">metric</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__metrics</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="Evaluator.auc"><a class="viewcode-back" href="../../metrics.html#metrics.Evaluator.Evaluator.auc">[docs]</a>    <span class="k">def</span> <span class="nf">auc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred_pos_score</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">y_pred_pos_score</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Prediction confidence of positive label should not be None for auc metric!&quot;</span>
+        <span class="n">fpr</span><span class="p">,</span> <span class="n">tpr</span><span class="p">,</span> <span class="n">thresholds</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">roc_curve</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred_pos_score</span><span class="p">,</span> <span class="n">pos_label</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__pos_label</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">metrics</span><span class="o">.</span><span class="n">auc</span><span class="p">(</span><span class="n">fpr</span><span class="p">,</span> <span class="n">tpr</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Evaluator.accuracy"><a class="viewcode-back" href="../../metrics.html#metrics.Evaluator.Evaluator.accuracy">[docs]</a>    <span class="k">def</span> <span class="nf">accuracy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">metrics</span><span class="o">.</span><span class="n">accuracy_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Evaluator.seq_tag_f1"><a class="viewcode-back" href="../../metrics.html#metrics.Evaluator.Evaluator.seq_tag_f1">[docs]</a>    <span class="k">def</span> <span class="nf">seq_tag_f1</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; For sequence tagging task, calculate F1-score(e.g. CONLL 2000)</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            y_true:</span>
+<span class="sd">            y_pred:</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">__tagging_scheme</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Please define tagging scheme!&quot;</span>
+        <span class="k">if</span> <span class="n">TaggingSchemes</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">__tagging_scheme</span><span class="p">]</span> <span class="o">==</span> <span class="n">TaggingSchemes</span><span class="o">.</span><span class="n">BIO</span><span class="p">:</span>
+            <span class="n">result_conll_format</span> <span class="o">=</span> <span class="n">to_conll_format</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">)</span>
+            <span class="n">correctChunk</span><span class="p">,</span> <span class="n">foundGuessed</span><span class="p">,</span> <span class="n">foundCorrect</span><span class="p">,</span> <span class="n">correctTags</span><span class="p">,</span> <span class="n">tokenCounter</span> <span class="o">=</span> <span class="n">countChunks</span><span class="p">(</span><span class="n">result_conll_format</span><span class="p">)</span>
+            <span class="n">overall_precision</span><span class="p">,</span> <span class="n">overall_recall</span><span class="p">,</span> <span class="n">overall_FB1</span> <span class="o">=</span> <span class="n">evaluate</span><span class="p">(</span><span class="n">correctChunk</span><span class="p">,</span> <span class="n">foundGuessed</span><span class="p">,</span> <span class="n">foundCorrect</span><span class="p">,</span> <span class="n">correctTags</span><span class="p">,</span> <span class="n">tokenCounter</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;TO DO: SUPPORT MORE TAGGING SCHEMES&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">overall_FB1</span></div>
+
+<div class="viewcode-block" id="Evaluator.macro_f1"><a class="viewcode-back" href="../../metrics.html#metrics.Evaluator.Evaluator.macro_f1">[docs]</a>    <span class="k">def</span> <span class="nf">macro_f1</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; For classification task, calculate f1-score for each label, and find their unweighted mean. This does not take label imbalance into account.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            y_true:</span>
+<span class="sd">            y_pred:</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">metrics</span><span class="o">.</span><span class="n">f1_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">average</span><span class="o">=</span><span class="s1">&#39;macro&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Evaluator.macro_precision"><a class="viewcode-back" href="../../metrics.html#metrics.Evaluator.Evaluator.macro_precision">[docs]</a>    <span class="k">def</span> <span class="nf">macro_precision</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Calculate precision for each label, and find their unweighted mean. This does not take label imbalance into account.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            y_true:</span>
+<span class="sd">            y_pred:</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">metrics</span><span class="o">.</span><span class="n">precision_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">average</span><span class="o">=</span><span class="s1">&#39;macro&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Evaluator.macro_recall"><a class="viewcode-back" href="../../metrics.html#metrics.Evaluator.Evaluator.macro_recall">[docs]</a>    <span class="k">def</span> <span class="nf">macro_recall</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Calculate recall for each label, and find their unweighted mean. This does not take label imbalance into account.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            y_true:</span>
+<span class="sd">            y_pred:</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">metrics</span><span class="o">.</span><span class="n">recall_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">average</span><span class="o">=</span><span class="s1">&#39;macro&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Evaluator.micro_f1"><a class="viewcode-back" href="../../metrics.html#metrics.Evaluator.Evaluator.micro_f1">[docs]</a>    <span class="k">def</span> <span class="nf">micro_f1</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; For classification task, calculate f1-score globally by counting the total true positives, false negatives and false positives.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            y_true:</span>
+<span class="sd">            y_pred:</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">metrics</span><span class="o">.</span><span class="n">f1_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">average</span><span class="o">=</span><span class="s1">&#39;micro&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Evaluator.f1"><a class="viewcode-back" href="../../metrics.html#metrics.Evaluator.Evaluator.f1">[docs]</a>    <span class="k">def</span> <span class="nf">f1</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; For classification task, calculate f1-score Only report results for the class specified by pos_label. This is applicable only if targets (y_{true,pred}) are binary..</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            y_true:</span>
+<span class="sd">            y_pred:</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">metrics</span><span class="o">.</span><span class="n">f1_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Evaluator.micro_precision"><a class="viewcode-back" href="../../metrics.html#metrics.Evaluator.Evaluator.micro_precision">[docs]</a>    <span class="k">def</span> <span class="nf">micro_precision</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Calculate precision globally by counting the total true positives, false negatives and false positives.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            y_true:</span>
+<span class="sd">            y_pred:</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">metrics</span><span class="o">.</span><span class="n">precision_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">average</span><span class="o">=</span><span class="s1">&#39;micro&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Evaluator.micro_recall"><a class="viewcode-back" href="../../metrics.html#metrics.Evaluator.Evaluator.micro_recall">[docs]</a>    <span class="k">def</span> <span class="nf">micro_recall</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Calculate recall globally by counting the total true positives, false negatives and false positives.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            y_true:</span>
+<span class="sd">            y_pred:</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">metrics</span><span class="o">.</span><span class="n">recall_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">average</span><span class="o">=</span><span class="s1">&#39;micro&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Evaluator.weighted_f1"><a class="viewcode-back" href="../../metrics.html#metrics.Evaluator.Evaluator.weighted_f1">[docs]</a>    <span class="k">def</span> <span class="nf">weighted_f1</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Calculate metrics for each label, and find their average, weighted by support (the number of true instances for each label). This alters ‘macro’ to account for label imbalance; it can result in an F-score that is not between precision and recall.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            y_true:</span>
+<span class="sd">            y_pred:</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">metrics</span><span class="o">.</span><span class="n">f1_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">average</span><span class="o">=</span><span class="s1">&#39;weighted&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Evaluator.weighted_precision"><a class="viewcode-back" href="../../metrics.html#metrics.Evaluator.Evaluator.weighted_precision">[docs]</a>    <span class="k">def</span> <span class="nf">weighted_precision</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Calculate metrics for each label, and find their average, weighted by support (the number of true instances for each label). This alters ‘macro’ to account for label imbalance; it can result in an F-score that is not between precision and recall.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            y_true:</span>
+<span class="sd">            y_pred:</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">metrics</span><span class="o">.</span><span class="n">precision_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">average</span><span class="o">=</span><span class="s1">&#39;weighted&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Evaluator.weighted_recall"><a class="viewcode-back" href="../../metrics.html#metrics.Evaluator.Evaluator.weighted_recall">[docs]</a>    <span class="k">def</span> <span class="nf">weighted_recall</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Calculate metrics for each label, and find their average, weighted by support (the number of true instances for each label). This alters ‘macro’ to account for label imbalance; it can result in an F-score that is not between precision and recall.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            y_true:</span>
+<span class="sd">            y_pred:</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">metrics</span><span class="o">.</span><span class="n">recall_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">average</span><span class="o">=</span><span class="s1">&#39;weighted&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Evaluator.MSE"><a class="viewcode-back" href="../../metrics.html#metrics.Evaluator.Evaluator.MSE">[docs]</a>    <span class="k">def</span> <span class="nf">MSE</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; mean square error</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            y_true: true score</span>
+<span class="sd">            y_pred: predict score</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">mean_squared_error</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Evaluator.RMSE"><a class="viewcode-back" href="../../metrics.html#metrics.Evaluator.Evaluator.RMSE">[docs]</a>    <span class="k">def</span> <span class="nf">RMSE</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; root mean square error</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            y_true: true score</span>
+<span class="sd">            y_pred: predict score</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">mean_squared_error</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Evaluator.normalize_answer"><a class="viewcode-back" href="../../metrics.html#metrics.Evaluator.Evaluator.normalize_answer">[docs]</a>    <span class="k">def</span> <span class="nf">normalize_answer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Lower text and remove punctuation, articles and extra whitespace.&quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">remove_articles</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\b(a|an|the)\b&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">white_space_fix</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">text</span><span class="o">.</span><span class="n">split</span><span class="p">())</span>
+
+        <span class="k">def</span> <span class="nf">remove_punc</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+            <span class="n">exclude</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">string</span><span class="o">.</span><span class="n">punctuation</span><span class="p">)</span>
+            <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ch</span> <span class="k">for</span> <span class="n">ch</span> <span class="ow">in</span> <span class="n">text</span> <span class="k">if</span> <span class="n">ch</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">exclude</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">lower</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">text</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">white_space_fix</span><span class="p">(</span><span class="n">remove_articles</span><span class="p">(</span><span class="n">remove_punc</span><span class="p">(</span><span class="n">lower</span><span class="p">(</span><span class="n">s</span><span class="p">))))</span></div>
+
+<div class="viewcode-block" id="Evaluator.mrc_f1"><a class="viewcode-back" href="../../metrics.html#metrics.Evaluator.Evaluator.mrc_f1">[docs]</a>    <span class="k">def</span> <span class="nf">mrc_f1</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        compute mrc task metric F1</span>
+<span class="sd">        :param y_true: type list. ground thruth answer text</span>
+<span class="sd">        :param y_pred: type list. length is same as y_true, model output answer text.</span>
+<span class="sd">        :return: mrc task F1 score</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">f1</span> <span class="o">=</span> <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">single_true</span><span class="p">,</span> <span class="n">single_pred</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
+            <span class="n">total</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">prediction_tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_answer</span><span class="p">(</span><span class="n">single_pred</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">ground_truth_tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_answer</span><span class="p">(</span><span class="n">single_true</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">common</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="n">prediction_tokens</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">Counter</span><span class="p">(</span><span class="n">ground_truth_tokens</span><span class="p">)</span>
+            <span class="n">num_same</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">common</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">num_same</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">precision</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">*</span> <span class="n">num_same</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">prediction_tokens</span><span class="p">)</span>
+            <span class="n">recall</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">*</span> <span class="n">num_same</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">ground_truth_tokens</span><span class="p">)</span>
+            <span class="n">f1</span> <span class="o">+=</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">precision</span><span class="o">*</span><span class="n">recall</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">precision</span><span class="o">+</span><span class="n">recall</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mf">100.0</span> <span class="o">*</span> <span class="n">f1</span> <span class="o">/</span> <span class="n">total</span></div>
+
+<div class="viewcode-block" id="Evaluator.mrc_em"><a class="viewcode-back" href="../../metrics.html#metrics.Evaluator.Evaluator.mrc_em">[docs]</a>    <span class="k">def</span> <span class="nf">mrc_em</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        compute mrc task metric EM</span>
+<span class="sd">        :param y_true:</span>
+<span class="sd">        :param y_pred:</span>
+<span class="sd">        :return: mrc task EM score</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">em</span> <span class="o">=</span> <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">single_true</span><span class="p">,</span> <span class="n">single_pred</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
+            <span class="n">total</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">em</span> <span class="o">+=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">normalize_answer</span><span class="p">(</span><span class="n">single_true</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_answer</span><span class="p">(</span><span class="n">single_pred</span><span class="p">))</span>
+        <span class="k">return</span> <span class="mf">100.0</span> <span class="o">*</span> <span class="n">em</span> <span class="o">/</span> <span class="n">total</span></div></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">evaluator</span> <span class="o">=</span> <span class="n">Evaluator</span><span class="p">([</span><span class="s1">&#39;auc&#39;</span><span class="p">,</span> <span class="s1">&#39;accuracy&#39;</span><span class="p">])</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">evaluator</span><span class="o">.</span><span class="n">get_supported_metrics</span><span class="p">())</span>
+
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Quantus STCA team&lt;quantus_stca@microsoft.com&gt;
+
+    </p>
+  </div> 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

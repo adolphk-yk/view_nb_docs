@@ -1,0 +1,7 @@
+data\_encoding module
+=====================
+
+.. automodule:: data_encoding
+    :members:
+    :undoc-members:
+    :show-inheritance:

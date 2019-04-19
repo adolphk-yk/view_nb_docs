@@ -1,0 +1,62 @@
+utils package
+=============
+
+Submodules
+----------
+
+utils.BPEEncoder module
+-----------------------
+
+.. automodule:: utils.BPEEncoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+utils.DocInherit module
+-----------------------
+
+.. automodule:: utils.DocInherit
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+utils.common\_utils module
+--------------------------
+
+.. automodule:: utils.common_utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+utils.corpus\_utils module
+--------------------------
+
+.. automodule:: utils.corpus_utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+utils.exceptions module
+-----------------------
+
+.. automodule:: utils.exceptions
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+utils.philly\_utils module
+--------------------------
+
+.. automodule:: utils.philly_utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: utils
+    :members:
+    :undoc-members:
+    :show-inheritance:

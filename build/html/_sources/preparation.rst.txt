@@ -1,0 +1,10 @@
+preparation package
+===================
+
+Module contents
+---------------
+
+.. automodule:: preparation
+    :members:
+    :undoc-members:
+    :show-inheritance:

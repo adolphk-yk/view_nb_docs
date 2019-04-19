@@ -1,0 +1,593 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Model &mdash; NeuronBlocks 1.1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> NeuronBlocks
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">Basic block_zoo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html#id15">Attention</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html#id25">embedding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html#id27">Operations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html#id31">Math</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html#id38">Transformer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html#id43">Encoder_Decoder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html#id47">Normalizations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html#id49">Loss Functions</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">NeuronBlocks</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Module code</a> &raquo;</li>
+        
+      <li>Model</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for Model</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) Microsoft Corporation. All rights reserved.</span>
+<span class="c1"># Licensed under the MIT license.</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+<span class="kn">from</span> <span class="nn">block_zoo</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">ujson</span> <span class="k">as</span> <span class="nn">json</span>
+<span class="kn">from</span> <span class="nn">utils.exceptions</span> <span class="k">import</span> <span class="n">ConfigurationError</span><span class="p">,</span> <span class="n">LayerUndefinedError</span><span class="p">,</span> <span class="n">LayerConfigUndefinedError</span>
+<span class="kn">from</span> <span class="nn">queue</span> <span class="k">import</span> <span class="n">Queue</span>
+<span class="kn">from</span> <span class="nn">utils.common_utils</span> <span class="k">import</span> <span class="n">transform_tensors2params</span><span class="p">,</span> <span class="n">transfer_to_gpu</span>
+
+<span class="kn">from</span> <span class="nn">block_zoo.Embedding</span> <span class="k">import</span> <span class="o">*</span>
+
+<span class="n">EMBED_LAYER_NAME</span> <span class="o">=</span> <span class="s1">&#39;Embedding&#39;</span>
+<span class="n">EMBED_LAYER_ID</span> <span class="o">=</span> <span class="s1">&#39;embedding&#39;</span>
+
+
+<div class="viewcode-block" id="get_conf"><a class="viewcode-back" href="../Model.html#Model.get_conf">[docs]</a><span class="k">def</span> <span class="nf">get_conf</span><span class="p">(</span><span class="n">layer_id</span><span class="p">,</span> <span class="n">layer_name</span><span class="p">,</span> <span class="n">input_layer_ids</span><span class="p">,</span> <span class="n">all_layer_configs</span><span class="p">,</span> <span class="n">model_input_ids</span><span class="p">,</span> <span class="n">use_gpu</span><span class="p">,</span>
+        <span class="n">conf_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shared_conf</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">succeed_embedding_flag</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">output_layer_flag</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">target_num</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fixed_lengths</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; get layer configuration</span>
+
+<span class="sd">    Args</span>
+<span class="sd">        layer_id: layer identifier</span>
+<span class="sd">        layer_name: name of layer such as BiLSTM</span>
+<span class="sd">        input_layer_ids (list): the inputs of current layer</span>
+<span class="sd">        all_layer_configs (dict): records the conf class of each layer.</span>
+<span class="sd">        model_input_ids (set): the inputs of the model, e.g. [&#39;query&#39;, &#39;passage&#39;]</span>
+<span class="sd">        use_gpu:</span>
+<span class="sd">        conf_dict:</span>
+<span class="sd">        shared_conf: if fixed_lengths is not None, the output_dim of shared_conf should be corrected!</span>
+<span class="sd">        flag:</span>
+<span class="sd">        output_layer_flag:</span>
+<span class="sd">        target_num: used for inference the dimension of output space if someone declare a dimension of -1</span>
+<span class="sd">        fixed_lengths</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        configuration class coresponds to the layer</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">shared_conf</span><span class="p">:</span>
+        <span class="n">conf</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">shared_conf</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">conf_dict</span><span class="p">[</span><span class="s1">&#39;use_gpu&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">use_gpu</span>
+
+            <span class="c1"># for classification tasks, we usually add a Linear layer to project the output to dimension of number of classes. If we don&#39;t know the #classes, we can use &#39;-1&#39; instead and we would calculate the number of classes from the corpus.</span>
+            <span class="k">if</span> <span class="n">layer_name</span> <span class="o">==</span> <span class="s1">&#39;Linear&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">conf_dict</span><span class="p">[</span><span class="s1">&#39;hidden_dim&#39;</span><span class="p">],</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="n">conf_dict</span><span class="p">[</span><span class="s1">&#39;hidden_dim&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                    <span class="k">assert</span> <span class="n">output_layer_flag</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;Only in the last layer, hidden_dim == -1 is allowed!&quot;</span>
+                    <span class="k">assert</span> <span class="n">target_num</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Number of targets should be given!&quot;</span>
+                    <span class="n">conf_dict</span><span class="p">[</span><span class="s1">&#39;hidden_dim&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">target_num</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">conf_dict</span><span class="p">[</span><span class="s1">&#39;hidden_dim&#39;</span><span class="p">],</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">conf_dict</span><span class="p">[</span><span class="s1">&#39;hidden_dim&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                    <span class="k">assert</span> <span class="n">output_layer_flag</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;Only in the last layer, hidden_dim == -1 is allowed!&quot;</span>
+                    <span class="k">assert</span> <span class="n">target_num</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Number of targets should be given!&quot;</span>
+                    <span class="n">conf_dict</span><span class="p">[</span><span class="s1">&#39;hidden_dim&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">target_num</span>
+
+            <span class="n">conf</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="n">layer_name</span> <span class="o">+</span> <span class="s2">&quot;Conf&quot;</span><span class="p">)(</span><span class="o">**</span><span class="n">conf_dict</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">NameError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">LayerConfigUndefinedError</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\&quot;</span><span class="si">%s</span><span class="s2">Conf</span><span class="se">\&quot;</span><span class="s2"> has not been defined&quot;</span> <span class="o">%</span> <span class="n">layer_name</span><span class="p">)</span>
+
+    <span class="c1"># verify the rank consistence of joint layers</span>
+    <span class="k">if</span> <span class="n">layer_name</span> <span class="o">==</span> <span class="n">EMBED_LAYER_NAME</span><span class="p">:</span>
+        <span class="c1"># the embedding layer</span>
+        <span class="k">pass</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># make sure all the inputs to current layer exist</span>
+        <span class="k">for</span> <span class="n">input_layer_id</span> <span class="ow">in</span> <span class="n">input_layer_ids</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">input_layer_id</span> <span class="ow">in</span> <span class="n">all_layer_configs</span> <span class="ow">or</span> <span class="n">input_layer_id</span> <span class="ow">in</span> <span class="n">model_input_ids</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">ConfigurationError</span><span class="p">(</span><span class="s2">&quot;The input </span><span class="si">%s</span><span class="s2"> of layer </span><span class="si">%s</span><span class="s2"> does not exist. Please define it before &quot;</span>
+                    <span class="s2">&quot;defining layer </span><span class="si">%s</span><span class="s2">!&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">input_layer_id</span><span class="p">,</span> <span class="n">layer_id</span><span class="p">,</span> <span class="n">layer_id</span><span class="p">))</span>
+
+        <span class="n">former_output_ranks</span> <span class="o">=</span> <span class="p">[</span><span class="n">all_layer_configs</span><span class="p">[</span><span class="n">input_layer_id</span><span class="p">]</span><span class="o">.</span><span class="n">output_rank</span> <span class="k">if</span> <span class="n">input_layer_id</span> <span class="ow">in</span> <span class="n">all_layer_configs</span> <span class="k">else</span> <span class="n">all_layer_configs</span><span class="p">[</span><span class="n">EMBED_LAYER_ID</span><span class="p">]</span><span class="o">.</span><span class="n">output_rank</span> <span class="k">for</span> <span class="n">input_layer_id</span> <span class="ow">in</span> <span class="n">input_layer_ids</span><span class="p">]</span>
+        <span class="c1"># inference input_dim</span>
+        <span class="n">conf</span><span class="o">.</span><span class="n">input_dims</span> <span class="o">=</span> <span class="p">[</span><span class="n">all_layer_configs</span><span class="p">[</span><span class="n">input_layer_id</span><span class="p">]</span><span class="o">.</span><span class="n">output_dim</span> <span class="k">if</span> <span class="n">input_layer_id</span> <span class="ow">in</span> <span class="n">all_layer_configs</span> <span class="k">else</span> <span class="n">all_layer_configs</span><span class="p">[</span><span class="n">EMBED_LAYER_ID</span><span class="p">]</span><span class="o">.</span><span class="n">output_dim</span> <span class="k">for</span> <span class="n">input_layer_id</span> <span class="ow">in</span> <span class="n">input_layer_ids</span><span class="p">]</span>
+
+        <span class="c1"># If the inputs come from embedding layer and fixed_lengths exist, set the length to input_dims</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_layer_ids</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">input_layer_ids</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">model_input_ids</span> <span class="ow">and</span> <span class="n">fixed_lengths</span><span class="p">:</span>
+            <span class="n">conf</span><span class="o">.</span><span class="n">input_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">fixed_lengths</span><span class="p">[</span><span class="n">input_layer_ids</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+
+        <span class="c1"># check and verify input ranks</span>
+        <span class="k">if</span> <span class="n">conf</span><span class="o">.</span><span class="n">num_of_inputs</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">conf</span><span class="o">.</span><span class="n">num_of_inputs</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_layer_ids</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">ConfigurationError</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> only accept </span><span class="si">%d</span><span class="s2"> inputs but you feed </span><span class="si">%d</span><span class="s2"> inputs to it!&quot;</span> <span class="o">%</span> \
+                        <span class="p">(</span><span class="n">layer_name</span><span class="p">,</span> <span class="n">conf</span><span class="o">.</span><span class="n">num_of_inputs</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_layer_ids</span><span class="p">)))</span>
+        <span class="k">elif</span> <span class="n">conf</span><span class="o">.</span><span class="n">num_of_inputs</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">conf</span><span class="o">.</span><span class="n">num_of_inputs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_layer_ids</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">conf</span><span class="o">.</span><span class="n">input_ranks</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">conf</span><span class="o">.</span><span class="n">input_ranks</span> <span class="o">=</span> <span class="n">conf</span><span class="o">.</span><span class="n">input_ranks</span> <span class="o">*</span> <span class="n">conf</span><span class="o">.</span><span class="n">num_of_inputs</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;[For developer of </span><span class="si">%s</span><span class="s2">] The input_ranks attribute should be a list!&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">layer_name</span><span class="p">))</span>
+                <span class="p">[</span><span class="n">conf</span><span class="o">.</span><span class="n">input_ranks</span><span class="p">]</span> <span class="o">*</span> <span class="n">conf</span><span class="o">.</span><span class="n">num_of_inputs</span>
+
+        <span class="k">for</span> <span class="n">input_rank</span><span class="p">,</span> <span class="n">former_output_rank</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">conf</span><span class="o">.</span><span class="n">input_ranks</span><span class="p">,</span> <span class="n">former_output_ranks</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">input_rank</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">input_rank</span> <span class="o">!=</span> <span class="n">former_output_rank</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ConfigurationError</span><span class="p">(</span><span class="s2">&quot;Input ranks of </span><span class="si">%s</span><span class="s2"> are inconsistent with former layers&quot;</span> <span class="o">%</span> <span class="n">layer_id</span><span class="p">)</span>
+        <span class="n">conf</span><span class="o">.</span><span class="n">input_ranks</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">former_output_ranks</span><span class="p">)</span>
+
+    <span class="c1"># inference and varification inside the layer</span>
+    <span class="n">conf</span><span class="o">.</span><span class="n">inference</span><span class="p">()</span>        <span class="c1"># update some attributes which relies on input dimension or something else</span>
+    <span class="n">conf</span><span class="o">.</span><span class="n">verify</span><span class="p">()</span>           <span class="c1"># verify if the configuration is legal</span>
+
+    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Layer id: </span><span class="si">%s</span><span class="s1">; name: </span><span class="si">%s</span><span class="s1">; input_dims: </span><span class="si">%s</span><span class="s1">; input_ranks: </span><span class="si">%s</span><span class="s1">; output_dim: </span><span class="si">%s</span><span class="s1">; output_rank: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">layer_id</span><span class="p">,</span> <span class="n">layer_name</span><span class="p">,</span> <span class="n">conf</span><span class="o">.</span><span class="n">input_dims</span> <span class="k">if</span> <span class="n">layer_id</span> <span class="o">!=</span> <span class="s1">&#39;embedding&#39;</span> <span class="k">else</span> <span class="s1">&#39;None&#39;</span><span class="p">,</span> <span class="n">conf</span><span class="o">.</span><span class="n">input_ranks</span><span class="p">,</span> <span class="n">conf</span><span class="o">.</span><span class="n">output_dim</span><span class="p">,</span> <span class="n">conf</span><span class="o">.</span><span class="n">output_rank</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">conf</span></div>
+
+
+<div class="viewcode-block" id="get_layer"><a class="viewcode-back" href="../Model.html#Model.get_layer">[docs]</a><span class="k">def</span> <span class="nf">get_layer</span><span class="p">(</span><span class="n">layer_name</span><span class="p">,</span> <span class="n">conf</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        layer_name:</span>
+<span class="sd">        conf:  configuration class</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        specific layer</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">layer</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="n">layer_name</span><span class="p">)(</span><span class="n">conf</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">NameError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">; Layer </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2"> has not been defined&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">),</span> <span class="n">layer_name</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">layer</span></div>
+
+
+<div class="viewcode-block" id="Model"><a class="viewcode-back" href="../Model.html#Model.Model">[docs]</a><span class="k">class</span> <span class="nc">Model</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conf</span><span class="p">,</span> <span class="n">problem</span><span class="p">,</span> <span class="n">vocab_info</span><span class="p">,</span> <span class="n">use_gpu</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            inputs: [&#39;string1&#39;, &#39;string2&#39;]</span>
+<span class="sd">            layer_archs:  The layers must produce tensors with similar shapes. The layers may be nested.</span>
+<span class="sd">                [</span>
+<span class="sd">                    {</span>
+<span class="sd">                    &#39;layer&#39;: Layer name,</span>
+<span class="sd">                    &#39;conf&#39;: {xxxx}</span>
+<span class="sd">                    },</span>
+<span class="sd">                    [</span>
+<span class="sd">                        {</span>
+<span class="sd">                        &#39;layer&#39;: Layer name,</span>
+<span class="sd">                        &#39;conf&#39;: {},</span>
+<span class="sd">                        },</span>
+<span class="sd">                        {</span>
+<span class="sd">                        &#39;layer&#39;: Layer name,</span>
+<span class="sd">                        &#39;conf&#39;: {},</span>
+<span class="sd">                        }</span>
+<span class="sd">                    ]</span>
+<span class="sd">                ]</span>
+<span class="sd">            vocab_info:</span>
+<span class="sd">                {</span>
+<span class="sd">                    &#39;word&#39;:  {</span>
+<span class="sd">                        &#39;vocab_size&#39;: xxx,</span>
+<span class="sd">                        &#39;init_weights&#39;: np matrix</span>
+<span class="sd">                        }</span>
+<span class="sd">                    &#39;postag&#39;: {</span>
+<span class="sd">                        &#39;vocab_size&#39;: xxx,</span>
+<span class="sd">                        &#39;init_weights&#39;: None</span>
+<span class="sd">                        }</span>
+<span class="sd">                }</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Model</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="n">inputs</span> <span class="o">=</span> <span class="n">conf</span><span class="o">.</span><span class="n">object_inputs_names</span>
+        <span class="n">layer_archs</span> <span class="o">=</span> <span class="n">conf</span><span class="o">.</span><span class="n">architecture</span>
+        <span class="n">target_num</span> <span class="o">=</span> <span class="n">problem</span><span class="o">.</span><span class="n">output_target_num</span><span class="p">()</span>
+
+        <span class="c1"># correct the real fixed length if begin/end of sentence are added</span>
+        <span class="k">if</span> <span class="n">conf</span><span class="o">.</span><span class="n">fixed_lengths</span><span class="p">:</span>
+            <span class="n">fixed_lengths_corrected</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">conf</span><span class="o">.</span><span class="n">fixed_lengths</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">seq</span> <span class="ow">in</span> <span class="n">fixed_lengths_corrected</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">problem</span><span class="o">.</span><span class="n">with_bos_eos</span><span class="p">:</span>
+                    <span class="n">fixed_lengths_corrected</span><span class="p">[</span><span class="n">seq</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">2</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fixed_lengths_corrected</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_gpu</span> <span class="o">=</span> <span class="n">use_gpu</span>
+
+        <span class="n">all_layer_configs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layer_inputs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layer_dependencies</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layer_dependencies</span><span class="p">[</span><span class="n">EMBED_LAYER_ID</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="c1"># change output_layer_id to list for support multi_output</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_layer_id</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">layer_index</span><span class="p">,</span> <span class="n">layer_arch</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">layer_archs</span><span class="p">):</span>
+            <span class="n">output_layer_flag</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="s1">&#39;output_layer_flag&#39;</span> <span class="ow">in</span> <span class="n">layer_arch</span> <span class="ow">and</span> <span class="n">layer_arch</span><span class="p">[</span><span class="s1">&#39;output_layer_flag&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">True</span> <span class="k">else</span> <span class="kc">False</span>
+            <span class="n">succeed_embedding_flag</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="n">layer_index</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="s1">&#39;inputs&#39;</span> <span class="ow">in</span> <span class="n">layer_arch</span> <span class="ow">and</span> \
+                    <span class="p">[</span><span class="nb">input</span> <span class="ow">in</span> <span class="n">inputs</span> <span class="k">for</span> <span class="nb">input</span> <span class="ow">in</span> <span class="n">layer_arch</span><span class="p">[</span><span class="s1">&#39;inputs&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">layer_arch</span><span class="p">[</span><span class="s1">&#39;inputs&#39;</span><span class="p">])</span> <span class="k">else</span> <span class="kc">False</span>
+
+            <span class="k">if</span> <span class="n">output_layer_flag</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">output_layer_id</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">layer_arch</span><span class="p">[</span><span class="s1">&#39;layer_id&#39;</span><span class="p">])</span>
+                <span class="c1"># if hasattr(self, &#39;output_layer_id&#39;):</span>
+                <span class="c1">#     raise ConfigurationError(&quot;There should be only one output!&quot;)</span>
+                <span class="c1"># else:</span>
+                <span class="c1">#     self.output_layer_id = layer_arch[&#39;layer_id&#39;]</span>
+
+            <span class="k">if</span> <span class="n">layer_index</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="c1"># embedding layer</span>
+                <span class="n">emb_conf</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">vocab_info</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">input_cluster</span> <span class="ow">in</span> <span class="n">emb_conf</span><span class="p">:</span>
+                    <span class="n">emb_conf</span><span class="p">[</span><span class="n">input_cluster</span><span class="p">][</span><span class="s1">&#39;dim&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">layer_arch</span><span class="p">[</span><span class="s1">&#39;conf&#39;</span><span class="p">][</span><span class="n">input_cluster</span><span class="p">][</span><span class="s1">&#39;dim&#39;</span><span class="p">]</span>
+                    <span class="n">emb_conf</span><span class="p">[</span><span class="n">input_cluster</span><span class="p">][</span><span class="s1">&#39;fix_weight&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">layer_arch</span><span class="p">[</span><span class="s1">&#39;conf&#39;</span><span class="p">][</span><span class="n">input_cluster</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;fix_weight&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+                <span class="n">all_layer_configs</span><span class="p">[</span><span class="n">EMBED_LAYER_ID</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_conf</span><span class="p">(</span><span class="n">EMBED_LAYER_ID</span><span class="p">,</span> <span class="n">layer_arch</span><span class="p">[</span><span class="s1">&#39;layer&#39;</span><span class="p">],</span>
+                    <span class="kc">None</span><span class="p">,</span> <span class="n">all_layer_configs</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_gpu</span><span class="p">,</span> <span class="n">conf_dict</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;conf&#39;</span><span class="p">:</span> <span class="n">emb_conf</span><span class="p">},</span>
+                    <span class="n">shared_conf</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">succeed_embedding_flag</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">output_layer_flag</span><span class="o">=</span><span class="n">output_layer_flag</span><span class="p">,</span>
+                    <span class="n">target_num</span><span class="o">=</span><span class="n">target_num</span><span class="p">,</span> <span class="n">fixed_lengths</span><span class="o">=</span><span class="n">fixed_lengths_corrected</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add_layer</span><span class="p">(</span><span class="n">EMBED_LAYER_ID</span><span class="p">,</span> <span class="n">get_layer</span><span class="p">(</span><span class="n">layer_arch</span><span class="p">[</span><span class="s1">&#39;layer&#39;</span><span class="p">],</span> <span class="n">all_layer_configs</span><span class="p">[</span><span class="n">EMBED_LAYER_ID</span><span class="p">]))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">layer_arch</span><span class="p">[</span><span class="s1">&#39;layer&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="ow">and</span> <span class="ow">not</span> <span class="s1">&#39;conf&#39;</span> <span class="ow">in</span> <span class="n">layer_arch</span><span class="p">:</span>
+                    <span class="c1"># reuse formly defined layers (share the same parameters)</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Layer id: </span><span class="si">%s</span><span class="s2">; Sharing configuration with layer </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">layer_arch</span><span class="p">[</span><span class="s1">&#39;layer_id&#39;</span><span class="p">],</span> <span class="n">layer_arch</span><span class="p">[</span><span class="s1">&#39;layer&#39;</span><span class="p">]))</span>
+                    <span class="n">conf_dict</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="n">shared_conf</span> <span class="o">=</span> <span class="n">all_layer_configs</span><span class="p">[</span><span class="n">layer_arch</span><span class="p">[</span><span class="s1">&#39;layer&#39;</span><span class="p">]]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">conf_dict</span> <span class="o">=</span> <span class="n">layer_arch</span><span class="p">[</span><span class="s1">&#39;conf&#39;</span><span class="p">]</span>
+                    <span class="n">shared_conf</span> <span class="o">=</span> <span class="kc">None</span>
+
+                <span class="c1"># if the layer is EncoderDecoder, inference the vocab size</span>
+                <span class="k">if</span> <span class="n">layer_arch</span><span class="p">[</span><span class="s1">&#39;layer&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;EncoderDecoder&#39;</span><span class="p">:</span>
+                        <span class="n">layer_arch</span><span class="p">[</span><span class="s1">&#39;conf&#39;</span><span class="p">][</span><span class="s1">&#39;decoder_conf&#39;</span><span class="p">][</span><span class="s1">&#39;decoder_vocab_size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">target_num</span>
+                <span class="n">all_layer_configs</span><span class="p">[</span><span class="n">layer_arch</span><span class="p">[</span><span class="s1">&#39;layer_id&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">get_conf</span><span class="p">(</span><span class="n">layer_arch</span><span class="p">[</span><span class="s1">&#39;layer_id&#39;</span><span class="p">],</span> <span class="n">layer_arch</span><span class="p">[</span><span class="s1">&#39;layer&#39;</span><span class="p">],</span>
+                    <span class="n">layer_arch</span><span class="p">[</span><span class="s1">&#39;inputs&#39;</span><span class="p">],</span> <span class="n">all_layer_configs</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_gpu</span><span class="p">,</span> <span class="n">conf_dict</span><span class="o">=</span><span class="n">conf_dict</span><span class="p">,</span>
+                    <span class="n">shared_conf</span><span class="o">=</span><span class="n">shared_conf</span><span class="p">,</span> <span class="n">succeed_embedding_flag</span><span class="o">=</span><span class="n">succeed_embedding_flag</span><span class="p">,</span>
+                    <span class="n">output_layer_flag</span><span class="o">=</span><span class="n">output_layer_flag</span><span class="p">,</span> <span class="n">target_num</span><span class="o">=</span><span class="n">target_num</span><span class="p">,</span>
+                    <span class="n">fixed_lengths</span><span class="o">=</span><span class="n">fixed_lengths_corrected</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">layer_arch</span><span class="p">[</span><span class="s1">&#39;layer&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="ow">and</span> <span class="ow">not</span> <span class="s1">&#39;conf&#39;</span> <span class="ow">in</span> <span class="n">layer_arch</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">add_layer</span><span class="p">(</span><span class="n">layer_arch</span><span class="p">[</span><span class="s1">&#39;layer_id&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">layer_arch</span><span class="p">[</span><span class="s1">&#39;layer&#39;</span><span class="p">]])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">add_layer</span><span class="p">(</span><span class="n">layer_arch</span><span class="p">[</span><span class="s1">&#39;layer_id&#39;</span><span class="p">],</span> <span class="n">get_layer</span><span class="p">(</span><span class="n">layer_arch</span><span class="p">[</span><span class="s1">&#39;layer&#39;</span><span class="p">],</span> <span class="n">all_layer_configs</span><span class="p">[</span><span class="n">layer_arch</span><span class="p">[</span><span class="s1">&#39;layer_id&#39;</span><span class="p">]]))</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">layer_inputs</span><span class="p">[</span><span class="n">layer_arch</span><span class="p">[</span><span class="s1">&#39;layer_id&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">layer_arch</span><span class="p">[</span><span class="s1">&#39;inputs&#39;</span><span class="p">]</span>
+
+                <span class="c1"># register dependencies, except embeddings</span>
+                <span class="n">cur_layer_depend</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">layer_depend_id</span> <span class="ow">in</span> <span class="n">layer_arch</span><span class="p">[</span><span class="s1">&#39;inputs&#39;</span><span class="p">]:</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">layer_depend_id</span> <span class="ow">in</span> <span class="n">inputs</span><span class="p">:</span>
+                        <span class="n">cur_layer_depend</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">layer_depend_id</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add_dependency</span><span class="p">(</span><span class="n">layer_arch</span><span class="p">[</span><span class="s1">&#39;layer_id&#39;</span><span class="p">],</span> <span class="n">cur_layer_depend</span><span class="p">)</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Layer dependencies: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layer_dependencies</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;output_layer_id&#39;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">ConfigurationError</span><span class="p">(</span><span class="s2">&quot;Please define an output layer&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">layer_topological_sequence</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_topological_sequence</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Model.add_layer"><a class="viewcode-back" href="../Model.html#Model.Model.add_layer">[docs]</a>    <span class="k">def</span> <span class="nf">add_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer_id</span><span class="p">,</span> <span class="n">layer</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; register a layer</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            layer_id:</span>
+<span class="sd">            layer:</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">layer_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ConfigurationError</span><span class="p">(</span><span class="s2">&quot;The layer id </span><span class="si">%s</span><span class="s2"> is not unique!&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">layer_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">layer</span></div>
+
+<div class="viewcode-block" id="Model.add_dependency"><a class="viewcode-back" href="../Model.html#Model.Model.add_dependency">[docs]</a>    <span class="k">def</span> <span class="nf">add_dependency</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer_id</span><span class="p">,</span> <span class="n">depend_layer_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; add the layers have to be proceed before layer_id</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            layer_id:</span>
+<span class="sd">            depend_layer_id:</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">layer_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_dependencies</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">layer_dependencies</span><span class="p">[</span><span class="n">layer_id</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">depend_layer_id</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">layer_dependencies</span><span class="p">[</span><span class="n">layer_id</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">depend_layer_id</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">layer_dependencies</span><span class="p">[</span><span class="n">layer_id</span><span class="p">]</span> <span class="o">|=</span> <span class="nb">set</span><span class="p">(</span><span class="n">depend_layer_id</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Model.remove_dependency"><a class="viewcode-back" href="../Model.html#Model.Model.remove_dependency">[docs]</a>    <span class="k">def</span> <span class="nf">remove_dependency</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">depend_layer_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; remove dependencies on layer_id</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            layer_id:</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">layer_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_dependencies</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">layer_dependencies</span><span class="p">[</span><span class="n">layer_id</span><span class="p">]</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">depend_layer_id</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Model.get_topological_sequence"><a class="viewcode-back" href="../Model.html#Model.Model.get_topological_sequence">[docs]</a>    <span class="k">def</span> <span class="nf">get_topological_sequence</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; get topological sequence of nodes in the model</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">total_layer_ids</span> <span class="o">=</span> <span class="n">Queue</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">layer_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">layer_id</span> <span class="o">!=</span> <span class="n">EMBED_LAYER_ID</span><span class="p">:</span>
+                <span class="n">total_layer_ids</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">layer_id</span><span class="p">)</span>
+
+        <span class="n">topological_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">circular_cnt</span> <span class="o">=</span> <span class="mi">0</span>     <span class="c1"># used for checking if there is at least one legal topological sorting</span>
+        <span class="k">while</span> <span class="ow">not</span> <span class="n">total_layer_ids</span><span class="o">.</span><span class="n">empty</span><span class="p">():</span>
+            <span class="n">layer_id</span> <span class="o">=</span> <span class="n">total_layer_ids</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layer_dependencies</span><span class="p">[</span><span class="n">layer_id</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">layer_id2</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_dependencies</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">layer_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_dependencies</span><span class="p">[</span><span class="n">layer_id2</span><span class="p">]:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">layer_dependencies</span><span class="p">[</span><span class="n">layer_id2</span><span class="p">]</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">layer_id</span><span class="p">)</span>
+                <span class="n">circular_cnt</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">topological_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">layer_id</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">total_layer_ids</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">layer_id</span><span class="p">)</span>
+                <span class="n">circular_cnt</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">circular_cnt</span> <span class="o">&gt;=</span> <span class="n">total_layer_ids</span><span class="o">.</span><span class="n">qsize</span><span class="p">():</span>
+                    <span class="n">rest_layers</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="k">while</span> <span class="ow">not</span> <span class="n">total_layer_ids</span><span class="o">.</span><span class="n">empty</span><span class="p">():</span>
+                        <span class="n">rest_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">total_layer_ids</span><span class="o">.</span><span class="n">get</span><span class="p">())</span>
+                    <span class="k">raise</span> <span class="n">ConfigurationError</span><span class="p">(</span><span class="s2">&quot;The model architecture is illegal because there is a circular dependency &quot;</span>
+                        <span class="s2">&quot;or there are some isolated layers. The layers can not be resolved: [</span><span class="si">%s</span><span class="s2">]&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">rest_layers</span><span class="p">)))</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Topological sequence of nodes: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">topological_list</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="n">topological_list</span></div>
+
+<div class="viewcode-block" id="Model.forward"><a class="viewcode-back" href="../Model.html#Model.Model.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs_desc</span><span class="p">,</span> <span class="n">length_desc</span><span class="p">,</span> <span class="o">*</span><span class="n">param_list</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            with the help of transform_tensors2params(inputs_desc, length_desc, param_list), we can get the below inputs and lengths</span>
+
+<span class="sd">            inputs: dict.</span>
+<span class="sd">                {</span>
+<span class="sd">                    &quot;string1&quot;:{</span>
+<span class="sd">                        &#39;word&#39;: word ids, [batch size, seq len]</span>
+<span class="sd">                        &#39;postag&#39;: postag ids,[batch size, seq len]</span>
+<span class="sd">                        ...</span>
+<span class="sd">                    }</span>
+<span class="sd">                    &quot;string2&quot;:{</span>
+<span class="sd">                        &#39;word&#39;: word ids,[batch size, seq len]</span>
+<span class="sd">                        &#39;postag&#39;: postag ids,[batch size, seq len]</span>
+<span class="sd">                        ...</span>
+<span class="sd">                    }</span>
+<span class="sd">                }</span>
+<span class="sd">            lengths: dict.</span>
+<span class="sd">                {</span>
+<span class="sd">                    &quot;string1&quot;: [...]</span>
+<span class="sd">                    &quot;string2&quot;: [...]</span>
+<span class="sd">                }</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">inputs</span><span class="p">,</span> <span class="n">lengths</span> <span class="o">=</span> <span class="n">transform_tensors2params</span><span class="p">(</span><span class="n">inputs_desc</span><span class="p">,</span> <span class="n">length_desc</span><span class="p">,</span> <span class="n">param_list</span><span class="p">)</span>
+
+        <span class="n">representation</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="n">representation</span><span class="p">[</span><span class="n">EMBED_LAYER_ID</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="n">repre_lengths</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="n">repre_lengths</span><span class="p">[</span><span class="n">EMBED_LAYER_ID</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="nb">input</span> <span class="ow">in</span> <span class="n">inputs</span><span class="p">:</span>
+            <span class="n">representation</span><span class="p">[</span><span class="nb">input</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">EMBED_LAYER_ID</span><span class="p">](</span><span class="n">inputs</span><span class="p">[</span><span class="nb">input</span><span class="p">],</span> <span class="n">use_gpu</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">is_cuda</span><span class="p">())</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_gpu</span><span class="p">:</span>
+                <span class="n">repre_lengths</span><span class="p">[</span><span class="nb">input</span><span class="p">]</span> <span class="o">=</span> <span class="n">transfer_to_gpu</span><span class="p">(</span><span class="n">lengths</span><span class="p">[</span><span class="nb">input</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">repre_lengths</span><span class="p">[</span><span class="nb">input</span><span class="p">]</span> <span class="o">=</span> <span class="n">lengths</span><span class="p">[</span><span class="nb">input</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">layer_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_topological_sequence</span><span class="p">:</span>
+            <span class="c1">#logging.debug(&quot;To proces layer %s&quot; % layer_id)</span>
+            <span class="n">input_params</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">input_layer_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_inputs</span><span class="p">[</span><span class="n">layer_id</span><span class="p">]:</span>
+                <span class="n">input_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">representation</span><span class="p">[</span><span class="n">input_layer_id</span><span class="p">])</span>
+                <span class="n">input_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">repre_lengths</span><span class="p">[</span><span class="n">input_layer_id</span><span class="p">])</span>
+
+            <span class="n">representation</span><span class="p">[</span><span class="n">layer_id</span><span class="p">],</span> <span class="n">repre_lengths</span><span class="p">[</span><span class="n">layer_id</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">layer_id</span><span class="p">](</span><span class="o">*</span><span class="n">input_params</span><span class="p">)</span>
+            <span class="c1">#logging.debug(&quot;Layer %s processed. output size: %s&quot; % (layer_id, representation[layer_id].size()))</span>
+
+        <span class="c1"># for support multi_output</span>
+        <span class="n">representation_output</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">single_output_layer_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_layer_id</span><span class="p">:</span>
+            <span class="n">representation_output</span><span class="p">[</span><span class="n">single_output_layer_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">representation</span><span class="p">[</span><span class="n">single_output_layer_id</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">representation_output</span></div>
+
+<div class="viewcode-block" id="Model.is_cuda"><a class="viewcode-back" href="../Model.html#Model.Model.is_cuda">[docs]</a>    <span class="k">def</span> <span class="nf">is_cuda</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">())</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">is_cuda</span></div></div>
+
+
+
+
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Quantus STCA team&lt;quantus_stca@microsoft.com&gt;
+
+    </p>
+  </div> 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

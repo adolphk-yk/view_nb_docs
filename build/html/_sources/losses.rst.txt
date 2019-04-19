@@ -1,0 +1,38 @@
+losses package
+==============
+
+Submodules
+----------
+
+losses.BaseLossConf module
+--------------------------
+
+.. automodule:: losses.BaseLossConf
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+losses.FocalLoss module
+-----------------------
+
+.. automodule:: losses.FocalLoss
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+losses.Loss module
+------------------
+
+.. automodule:: losses.Loss
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: losses
+    :members:
+    :undoc-members:
+    :show-inheritance:

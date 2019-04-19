@@ -1,0 +1,414 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>core.CellDict &mdash; NeuronBlocks 1.1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> NeuronBlocks
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Basic block_zoo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html#id15">Attention</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html#id25">embedding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html#id27">Operations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html#id31">Math</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html#id38">Transformer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html#id43">Encoder_Decoder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html#id47">Normalizations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html#id49">Loss Functions</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">NeuronBlocks</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>core.CellDict</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for core.CellDict</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) Microsoft Corporation. All rights reserved.</span>
+<span class="c1"># Licensed under the MIT license.</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">Counter</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pickle</span> <span class="k">as</span> <span class="nn">pkl</span>
+
+<div class="viewcode-block" id="CellDict"><a class="viewcode-back" href="../../core.html#core.CellDict.CellDict">[docs]</a><span class="k">class</span> <span class="nc">CellDict</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">with_start</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">with_end</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">with_unk</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">with_pad</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cell_id_map</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">id_cell_map</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cell_doc_count</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">with_start</span> <span class="o">=</span> <span class="n">with_start</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">with_end</span> <span class="o">=</span> <span class="n">with_end</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">with_unk</span> <span class="o">=</span> <span class="n">with_unk</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">with_pad</span> <span class="o">=</span> <span class="n">with_pad</span>
+
+        <span class="k">if</span> <span class="n">with_pad</span><span class="p">:</span>
+            <span class="c1"># 0 is reserved for padding</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cell_id_map</span><span class="p">[</span><span class="s2">&quot;&lt;pad&gt;&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">id_cell_map</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&lt;pad&gt;&quot;</span>
+
+        <span class="k">if</span> <span class="n">with_start</span><span class="p">:</span>
+            <span class="nb">id</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cell_id_map</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cell_id_map</span><span class="p">[</span><span class="s2">&quot;&lt;start&gt;&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">id</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">id_cell_map</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&lt;start&gt;&quot;</span>
+
+        <span class="k">if</span> <span class="n">with_end</span><span class="p">:</span>
+            <span class="nb">id</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cell_id_map</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cell_id_map</span><span class="p">[</span><span class="s2">&quot;&lt;eos&gt;&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">id</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">id_cell_map</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&lt;eos&gt;&quot;</span>
+
+        <span class="k">if</span> <span class="n">with_unk</span><span class="p">:</span>
+            <span class="nb">id</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cell_id_map</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cell_id_map</span><span class="p">[</span><span class="s2">&quot;&lt;unk&gt;&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">id</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">id_cell_map</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&lt;unk&gt;&quot;</span>
+
+<div class="viewcode-block" id="CellDict.iter_ids"><a class="viewcode-back" href="../../core.html#core.CellDict.CellDict.iter_ids">[docs]</a>    <span class="k">def</span> <span class="nf">iter_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">for</span> <span class="nb">id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">id_cell_map</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="nb">id</span></div>
+
+<div class="viewcode-block" id="CellDict.iter_cells"><a class="viewcode-back" href="../../core.html#core.CellDict.CellDict.iter_cells">[docs]</a>    <span class="k">def</span> <span class="nf">iter_cells</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">for</span> <span class="n">cell</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cell_id_map</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">cell</span></div>
+
+<div class="viewcode-block" id="CellDict.id"><a class="viewcode-back" href="../../core.html#core.CellDict.CellDict.id">[docs]</a>    <span class="k">def</span> <span class="nf">id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cell</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cell_id_map</span><span class="p">[</span><span class="n">cell</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="CellDict.cell"><a class="viewcode-back" href="../../core.html#core.CellDict.CellDict.cell">[docs]</a>    <span class="k">def</span> <span class="nf">cell</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">id_cell_map</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="CellDict.cell_num"><a class="viewcode-back" href="../../core.html#core.CellDict.CellDict.cell_num">[docs]</a>    <span class="k">def</span> <span class="nf">cell_num</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">id_cell_map</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CellDict.has_id"><a class="viewcode-back" href="../../core.html#core.CellDict.CellDict.has_id">[docs]</a>    <span class="k">def</span> <span class="nf">has_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+
+        <span class="k">return</span> <span class="nb">id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">id_cell_map</span></div>
+
+<div class="viewcode-block" id="CellDict.has_cell"><a class="viewcode-back" href="../../core.html#core.CellDict.CellDict.has_cell">[docs]</a>    <span class="k">def</span> <span class="nf">has_cell</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cell</span><span class="p">):</span>
+
+        <span class="k">return</span> <span class="n">cell</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cell_id_map</span></div>
+
+<div class="viewcode-block" id="CellDict.build"><a class="viewcode-back" href="../../core.html#core.CellDict.CellDict.build">[docs]</a>    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">docs</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">max_vocabulary_num</span><span class="o">=</span><span class="mi">800000</span><span class="p">):</span>
+
+        <span class="k">for</span> <span class="n">doc</span> <span class="ow">in</span> <span class="n">docs</span><span class="p">:</span>
+            <span class="c1"># add type judge</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cell_doc_count</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">doc</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cell_doc_count</span><span class="o">.</span><span class="n">update</span><span class="p">([</span><span class="n">doc</span><span class="p">])</span>
+
+        <span class="c1"># restrict the vocabulary size to prevent embedding dict weight size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cell_doc_count</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cell_doc_count</span><span class="o">.</span><span class="n">most_common</span><span class="p">(</span><span class="n">max_vocabulary_num</span><span class="p">)))</span>
+        <span class="k">for</span> <span class="n">cell</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cell_doc_count</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="n">cell</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cell_id_map</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">cell_doc_count</span><span class="p">[</span><span class="n">cell</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">threshold</span><span class="p">:</span>
+                <span class="nb">id</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cell_id_map</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cell_id_map</span><span class="p">[</span><span class="n">cell</span><span class="p">]</span> <span class="o">=</span> <span class="nb">id</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">id_cell_map</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">cell</span></div>
+
+<div class="viewcode-block" id="CellDict.id_unk"><a class="viewcode-back" href="../../core.html#core.CellDict.CellDict.id_unk">[docs]</a>    <span class="k">def</span> <span class="nf">id_unk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cell</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        return &lt;unk&gt; in cells not in cell_id_map dict</span>
+<span class="sd">        :param cell:</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">cell</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cell_id_map</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cell_id_map</span><span class="p">[</span><span class="n">cell</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cell_id_map</span><span class="p">[</span><span class="s1">&#39;&lt;unk&gt;&#39;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="CellDict.load_from_exist_dict"><a class="viewcode-back" href="../../core.html#core.CellDict.CellDict.load_from_exist_dict">[docs]</a>    <span class="k">def</span> <span class="nf">load_from_exist_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">word_dict</span><span class="p">,</span>
+                             <span class="n">start_str</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                             <span class="n">end_str</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                             <span class="n">unk_str</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                             <span class="n">pad_str</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        build cells from exist dicts</span>
+<span class="sd">        :param word_dict:</span>
+<span class="sd">        :param start_str: start single in word_dict</span>
+<span class="sd">        :param end_str: end single in word_dict</span>
+<span class="sd">        :param unk_str:</span>
+<span class="sd">        :param pad_str:</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">id2word_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">pad_str</span><span class="p">:</span>
+            <span class="c1"># 0 is reserved for padding</span>
+            <span class="nb">id</span> <span class="o">=</span> <span class="n">word_dict</span><span class="p">[</span><span class="n">pad_str</span><span class="p">]</span>
+            <span class="n">word_dict</span><span class="p">[</span><span class="s2">&quot;&lt;pad&gt;&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">id</span>
+            <span class="k">del</span> <span class="p">(</span><span class="n">word_dict</span><span class="p">[</span><span class="n">pad_str</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">with_pad</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="n">start_str</span><span class="p">:</span>
+            <span class="nb">id</span> <span class="o">=</span> <span class="n">word_dict</span><span class="p">[</span><span class="n">start_str</span><span class="p">]</span>
+            <span class="n">word_dict</span><span class="p">[</span><span class="s2">&quot;&lt;start&gt;&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">id</span>
+            <span class="k">del</span><span class="p">(</span><span class="n">word_dict</span><span class="p">[</span><span class="n">start_str</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">with_start</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="n">end_str</span><span class="p">:</span>
+            <span class="nb">id</span> <span class="o">=</span> <span class="n">word_dict</span><span class="p">[</span><span class="n">end_str</span><span class="p">]</span>
+            <span class="n">word_dict</span><span class="p">[</span><span class="s2">&quot;&lt;eos&gt;&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">id</span>
+            <span class="k">del</span><span class="p">(</span><span class="n">word_dict</span><span class="p">[</span><span class="n">end_str</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">with_end</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="n">unk_str</span><span class="p">:</span>
+            <span class="nb">id</span> <span class="o">=</span> <span class="n">word_dict</span><span class="p">[</span><span class="n">unk_str</span><span class="p">]</span>
+            <span class="n">word_dict</span><span class="p">[</span><span class="s2">&quot;&lt;unk&gt;&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">id</span>
+            <span class="k">del</span><span class="p">(</span><span class="n">word_dict</span><span class="p">[</span><span class="n">unk_str</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">with_unk</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">for</span> <span class="n">word</span><span class="p">,</span> <span class="nb">id</span> <span class="ow">in</span> <span class="n">word_dict</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="n">id2word_dict</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">word</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cell_id_map</span> <span class="o">=</span> <span class="n">word_dict</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">id_cell_map</span> <span class="o">=</span> <span class="n">id2word_dict</span></div>
+
+<div class="viewcode-block" id="CellDict.add_cells"><a class="viewcode-back" href="../../core.html#core.CellDict.CellDict.add_cells">[docs]</a>    <span class="k">def</span> <span class="nf">add_cells</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cells</span><span class="p">):</span>
+
+        <span class="k">for</span> <span class="n">cell</span> <span class="ow">in</span> <span class="n">cells</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">cell</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cell_id_map</span><span class="p">:</span>
+                <span class="nb">id</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cell_id_map</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cell_id_map</span><span class="p">[</span><span class="n">cell</span><span class="p">]</span> <span class="o">=</span> <span class="nb">id</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">id_cell_map</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">cell</span></div>
+
+<div class="viewcode-block" id="CellDict.lookup"><a class="viewcode-back" href="../../core.html#core.CellDict.CellDict.lookup">[docs]</a>    <span class="k">def</span> <span class="nf">lookup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cells</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; get id of cells. if cell in dict, return id, else update the dict and return id</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            cells:</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cur_corpus</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">cells</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">cell</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">cells</span><span class="p">):</span>
+
+            <span class="k">if</span> <span class="n">cell</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cell_id_map</span><span class="p">:</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">with_unk</span><span class="p">:</span>
+                    <span class="nb">id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">(</span><span class="s2">&quot;&lt;unk&gt;&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                        <span class="sa">u</span><span class="s2">&quot;Unknown cells </span><span class="si">{0}</span><span class="s2"> found. the repo &quot;</span>
+                        <span class="sa">u</span><span class="s2">&quot;should build with with_unk = True.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">cell</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf8&#39;</span><span class="p">))</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Unknown cells found with with_unk=False&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cell_id_map</span><span class="p">[</span><span class="n">cell</span><span class="p">]</span>
+
+            <span class="n">cur_corpus</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="nb">id</span>
+
+        <span class="k">return</span> <span class="n">cur_corpus</span></div>
+
+<div class="viewcode-block" id="CellDict.decode"><a class="viewcode-back" href="../../core.html#core.CellDict.CellDict.decode">[docs]</a>    <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; look up the cell for a list of ids</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            ids: list or 1d np array</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">cell</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span> <span class="k">for</span> <span class="nb">id</span> <span class="ow">in</span> <span class="n">ids</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="CellDict.export_cell_dict"><a class="viewcode-back" href="../../core.html#core.CellDict.CellDict.export_cell_dict">[docs]</a>    <span class="k">def</span> <span class="nf">export_cell_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">save_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">save_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">save_path</span><span class="p">)):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">save_path</span><span class="p">))</span>
+
+        <span class="n">cell_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">vars</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;__&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="n">cell_dict</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+        <span class="k">if</span> <span class="n">save_path</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">save_path</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fout</span><span class="p">:</span>
+                <span class="n">pkl</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">cell_dict</span><span class="p">,</span> <span class="n">fout</span><span class="p">,</span> <span class="n">protocol</span><span class="o">=</span><span class="n">pkl</span><span class="o">.</span><span class="n">HIGHEST_PROTOCOL</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Cell dict saved to </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">save_path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">cell_dict</span></div>
+
+<div class="viewcode-block" id="CellDict.load_cell_dict"><a class="viewcode-back" href="../../core.html#core.CellDict.CellDict.load_cell_dict">[docs]</a>    <span class="k">def</span> <span class="nf">load_cell_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">info_dict</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">info_dict</span><span class="p">:</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">info_dict</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Cell dict loaded&quot;</span><span class="p">)</span></div></div>
+
+
+
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Quantus STCA team&lt;quantus_stca@microsoft.com&gt;
+
+    </p>
+  </div> 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

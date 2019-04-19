@@ -1,0 +1,709 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>ModelConf &mdash; NeuronBlocks 1.1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> NeuronBlocks
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">Basic block_zoo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html#id15">Attention</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html#id25">embedding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html#id27">Operations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html#id31">Math</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html#id38">Transformer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html#id43">Encoder_Decoder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html#id47">Normalizations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html#id49">Loss Functions</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">NeuronBlocks</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Module code</a> &raquo;</li>
+        
+      <li>ModelConf</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for ModelConf</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) Microsoft Corporation. All rights reserved.</span>
+<span class="c1"># Licensed under the MIT license.</span>
+
+<span class="kn">import</span> <span class="nn">codecs</span>
+<span class="kn">import</span> <span class="nn">ujson</span> <span class="k">as</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">string</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="kn">from</span> <span class="nn">losses.BaseLossConf</span> <span class="k">import</span> <span class="n">BaseLossConf</span>
+<span class="c1">#import traceback</span>
+<span class="kn">from</span> <span class="nn">settings</span> <span class="k">import</span> <span class="n">ProblemTypes</span><span class="p">,</span> <span class="n">TaggingSchemes</span><span class="p">,</span> <span class="n">SupportedMetrics</span><span class="p">,</span> <span class="n">PredictionTypes</span><span class="p">,</span> <span class="n">DefaultPredictionFields</span>
+<span class="kn">from</span> <span class="nn">utils.common_utils</span> <span class="k">import</span> <span class="n">log_set</span><span class="p">,</span> <span class="n">prepare_dir</span>
+<span class="kn">from</span> <span class="nn">utils.exceptions</span> <span class="k">import</span> <span class="n">ConfigurationError</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<div class="viewcode-block" id="ModelConf"><a class="viewcode-back" href="../ModelConf.html#ModelConf.ModelConf">[docs]</a><span class="k">class</span> <span class="nc">ModelConf</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">phase</span><span class="p">,</span> <span class="n">conf_path</span><span class="p">,</span> <span class="n">nb_version</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;normal&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; loading configuration from configuration file and argparse parameters</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            phase: train/test/predict/cache</span>
+<span class="sd">                specially, &#39;cache&#39; phase is used for verifying old cache</span>
+<span class="sd">            conf_path:</span>
+<span class="sd">            params:</span>
+<span class="sd">            mode: &#39;normal&#39;, &#39;philly&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">=</span> <span class="n">phase</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;train&#39;</span><span class="p">,</span> <span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="s1">&#39;predict&#39;</span><span class="p">,</span> <span class="s1">&#39;cache&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conf_path</span> <span class="o">=</span> <span class="n">conf_path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">params</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;normal&#39;</span><span class="p">,</span> <span class="s1">&#39;philly&#39;</span><span class="p">]),</span> <span class="s1">&#39;Your mode </span><span class="si">%s</span><span class="s1"> is illegal, supported modes are: normal and philly!&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">load_from_file</span><span class="p">(</span><span class="n">conf_path</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_version_compat</span><span class="p">(</span><span class="n">nb_version</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tool_version</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">phase</span> <span class="o">!=</span> <span class="s1">&#39;cache&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">check_conf</span><span class="p">()</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Print ModelConf below:&#39;</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;=&#39;</span> <span class="o">*</span> <span class="mi">80</span><span class="p">)</span>
+        <span class="c1"># print ModelConf</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">vars</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;__&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)))</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;=&#39;</span> <span class="o">*</span> <span class="mi">80</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ModelConf.load_from_file"><a class="viewcode-back" href="../ModelConf.html#ModelConf.ModelConf.load_from_file">[docs]</a>    <span class="k">def</span> <span class="nf">load_from_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conf_path</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">codecs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">conf_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fin</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">conf</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fin</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ConfigurationError</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> is not a legal JSON file, please check your JSON format!&quot;</span> <span class="o">%</span> <span class="n">conf_path</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">tool_version</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;tool_version&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">problem_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;dataset_type&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">ProblemTypes</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">problem_type</span><span class="p">]</span> <span class="o">==</span> <span class="n">ProblemTypes</span><span class="o">.</span><span class="n">sequence_tagging</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tagging_scheme</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;tagging_scheme&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">use_default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;normal&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">use_cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;use_cache&#39;</span><span class="p">],</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;philly&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">use_cache</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># OUTPUTS</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;model_save_dir&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_save_dir</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">save_base_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_save_dir</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">save_base_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="s1">&#39;save_base_dir&#39;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s1">&#39;train&#39;</span><span class="p">:</span>
+            <span class="c1"># in train.py, it is called pretrained_model_path</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;pretrained_model_path&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pretrained_model_path</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_model_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">previous_model_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pretrained_model_path</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_model_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">previous_model_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;data_paths&#39;</span><span class="p">,</span> <span class="s1">&#39;pretrained_model_path&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">use_default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s1">&#39;test&#39;</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s1">&#39;predict&#39;</span><span class="p">:</span>
+            <span class="c1"># in test.py and predict.py, it is called pretrained_model_path</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;previous_model_path&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">previous_model_path</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">previous_model_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_model_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">previous_model_path</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">previous_model_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_model_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">save_base_dir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="s1">&#39;model_name&#39;</span><span class="p">]))</span> <span class="c1"># namely, the model_save_path</span>
+
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;pretrained_model_path&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_model_path</span><span class="p">:</span>  <span class="c1"># namely self.previous_model_path</span>
+            <span class="n">tmp_saved_problem_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pretrained_model_path</span><span class="p">),</span> <span class="s1">&#39;.necessary_cache&#39;</span><span class="p">,</span> <span class="s1">&#39;problem.pkl&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">saved_problem_path</span> <span class="o">=</span> <span class="n">tmp_saved_problem_path</span> <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">tmp_saved_problem_path</span><span class="p">)</span> \
+                <span class="k">else</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pretrained_model_path</span><span class="p">),</span> <span class="s1">&#39;necessary_cache&#39;</span><span class="p">,</span> <span class="s1">&#39;problem.pkl&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pretrained_model_path</span><span class="p">)</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">saved_problem_path</span><span class="p">)):</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Previous trained model </span><span class="si">%s</span><span class="s1"> or its dictionaries </span><span class="si">%s</span><span class="s1"> does not exist!&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pretrained_model_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">saved_problem_path</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">!=</span> <span class="s1">&#39;cache&#39;</span><span class="p">:</span>
+            <span class="n">prepare_dir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">save_base_dir</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">allow_overwrite</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">force</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;philly&#39;</span><span class="p">,</span>
+                        <span class="n">extra_info</span><span class="o">=</span><span class="s1">&#39;will overwrite model file and train.log&#39;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span><span class="o">==</span><span class="s1">&#39;train&#39;</span> <span class="k">else</span> <span class="s1">&#39;will add </span><span class="si">%s</span><span class="s1">.log and predict file&#39;</span><span class="o">%</span><span class="bp">self</span><span class="o">.</span><span class="n">phase</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;log_dir&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">log_dir</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">log_dir</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">!=</span> <span class="s1">&#39;cache&#39;</span><span class="p">:</span>
+                <span class="n">prepare_dir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_dir</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">allow_overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_base_dir</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s1">&#39;train&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">train_log_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_dir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="s1">&#39;train_log_name&#39;</span><span class="p">]))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;philly&#39;</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+                <span class="n">log_set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">train_log_path</span><span class="p">,</span> <span class="n">console_level</span><span class="o">=</span><span class="s1">&#39;DEBUG&#39;</span><span class="p">,</span> <span class="n">console_detailed</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">disable_log_file</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">disable_log_file</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">log_set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">train_log_path</span><span class="p">,</span> <span class="n">disable_log_file</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">disable_log_file</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s1">&#39;test&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">test_log_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_dir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="s1">&#39;test_log_name&#39;</span><span class="p">]))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;philly&#39;</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+                <span class="n">log_set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">test_log_path</span><span class="p">,</span> <span class="n">console_level</span><span class="o">=</span><span class="s1">&#39;DEBUG&#39;</span><span class="p">,</span> <span class="n">console_detailed</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">disable_log_file</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">disable_log_file</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">log_set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">test_log_path</span><span class="p">,</span> <span class="n">disable_log_file</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">disable_log_file</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s1">&#39;predict&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">predict_log_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_dir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="s1">&#39;predict_log_name&#39;</span><span class="p">]))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;philly&#39;</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+                <span class="n">log_set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predict_log_path</span><span class="p">,</span> <span class="n">console_level</span><span class="o">=</span><span class="s1">&#39;DEBUG&#39;</span><span class="p">,</span> <span class="n">console_detailed</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">disable_log_file</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">disable_log_file</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">log_set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predict_log_path</span><span class="p">,</span> <span class="n">disable_log_file</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">disable_log_file</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">!=</span> <span class="s1">&#39;cache&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">predict_output_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">predict_output_path</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">predict_output_path</span> <span class="k">else</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">save_base_dir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="s1">&#39;predict_output_name&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;predict.tsv&#39;</span><span class="p">))</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Prepare dir for: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">predict_output_path</span><span class="p">)</span>
+            <span class="n">prepare_dir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predict_output_path</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">allow_overwrite</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">force</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;philly&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">predict_fields</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="s1">&#39;predict_fields&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="n">DefaultPredictionFields</span><span class="p">[</span><span class="n">ProblemTypes</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">problem_type</span><span class="p">]])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_save_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">save_base_dir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="s1">&#39;model_name&#39;</span><span class="p">]))</span>
+
+        <span class="c1"># INPUTS</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;train_data_path&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train_data_path</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">train_data_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train_data_path</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;normal&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">train_data_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;data_paths&#39;</span><span class="p">,</span> <span class="s1">&#39;train_data_path&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">use_default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">train_data_path</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;valid_data_path&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">valid_data_path</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">valid_data_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">valid_data_path</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;normal&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">valid_data_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;data_paths&#39;</span><span class="p">,</span> <span class="s1">&#39;valid_data_path&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">use_default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">valid_data_path</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;test_data_path&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">test_data_path</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">test_data_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">test_data_path</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;normal&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">test_data_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;data_paths&#39;</span><span class="p">,</span> <span class="s1">&#39;test_data_path&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">use_default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">test_data_path</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s1">&#39;predict&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">predict_data_path</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">predict_data_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">predict_data_path</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;normal&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">predict_data_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;data_paths&#39;</span><span class="p">,</span> <span class="s1">&#39;predict_data_path&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">use_default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">predict_data_path</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s1">&#39;train&#39;</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s1">&#39;cache&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">valid_data_path</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">test_data_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># We support test_data_path == None, if someone set valid_data_path to None while test_data_path is not None,</span>
+                <span class="c1"># swap the valid_data_path and test_data_path</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">valid_data_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">test_data_path</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">test_data_path</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s1">&#39;predict&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">predict_data_path</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">test_data_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">predict_data_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">test_data_path</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">test_data_path</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s1">&#39;train&#39;</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s1">&#39;test&#39;</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s1">&#39;cache&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">file_columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;file_header&#39;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">file_columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;file_header&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">use_default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s1">&#39;predict&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_columns</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">predict_file_columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;predict_file_header&#39;</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">predict_file_columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;predict_file_header&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">use_default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">predict_file_columns</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">predict_file_columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_columns</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">!=</span> <span class="s1">&#39;predict&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s1">&#39;cache&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">answer_column_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;target&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">use_default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">answer_column_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;target&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_types</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;architecture&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;conf&#39;</span><span class="p">])</span>
+        <span class="c1"># add extra feature</span>
+        <span class="n">feature_all</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">_</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_types</span><span class="o">.</span><span class="n">keys</span><span class="p">()])</span>
+        <span class="n">formal_feature</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;word&#39;</span><span class="p">,</span> <span class="s1">&#39;char&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">extra_feature</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">feature_all</span> <span class="o">-</span> <span class="n">formal_feature</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span>
+
+        <span class="c1"># add char embedding config</span>
+        <span class="c1"># char_emb_type = None</span>
+        <span class="c1"># char_emb_type_cols = None</span>
+        <span class="c1"># for single_type in self.input_types:</span>
+        <span class="c1">#     if single_type.lower() == &#39;char&#39;:</span>
+        <span class="c1">#         char_emb_type = single_type</span>
+        <span class="c1">#         char_emb_type_cols = [single_col.lower() for single_col in self.input_types[single_type][&#39;cols&#39;]]</span>
+        <span class="c1">#         break</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">object_inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;model_inputs&#39;</span><span class="p">])</span>
+        <span class="c1"># if char_emb_type and char_emb_type_cols:</span>
+        <span class="c1">#     for single_input in self.object_inputs:</span>
+        <span class="c1">#         for single_col in char_emb_type_cols:</span>
+        <span class="c1">#             if single_input.lower() in single_col:</span>
+        <span class="c1">#                 self.object_inputs[single_input].append(single_col)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">object_inputs_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">object_inputs</span><span class="p">]</span>
+
+        <span class="c1"># vocabulary setting</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_vocabulary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;training_params&#39;</span><span class="p">,</span> <span class="s1">&#39;vocabulary&#39;</span><span class="p">,</span> <span class="s1">&#39;max_vocabulary&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="mi">800000</span><span class="p">,</span> <span class="n">use_default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_word_frequency</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;training_params&#39;</span><span class="p">,</span> <span class="s1">&#39;vocabulary&#39;</span><span class="p">,</span> <span class="s1">&#39;min_word_frequency&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">use_default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># file column header setting</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file_with_col_header</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;file_with_col_header&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">use_default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">ProblemTypes</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">problem_type</span><span class="p">]</span> <span class="o">==</span> <span class="n">ProblemTypes</span><span class="o">.</span><span class="n">sequence_tagging</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_start_end_for_seq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;add_start_end_for_seq&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_start_end_for_seq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;add_start_end_for_seq&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;pretrained_emb_path&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pretrained_emb_path</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_emb_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pretrained_emb_path</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;normal&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_emb_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;data_paths&#39;</span><span class="p">,</span> <span class="s1">&#39;pre_trained_emb&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">use_default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_emb_path</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="s1">&#39;word&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;architecture&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;conf&#39;</span><span class="p">])</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_emb_path</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;involve_all_words_in_pretrained_emb&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">involve_all_words_in_pretrained_emb</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">involve_all_words_in_pretrained_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">involve_all_words_in_pretrained_emb</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">involve_all_words_in_pretrained_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;involve_all_words_in_pretrained_emb&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;pretrained_emb_type&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pretrained_emb_type</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_emb_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pretrained_emb_type</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_emb_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;pretrained_emb_type&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;glove&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;pretrained_emb_binary_or_text&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pretrained_emb_binary_or_text</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_emb_binary_or_text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pretrained_emb_binary_or_text</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_emb_binary_or_text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;pretrained_emb_binary_or_text&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;text&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_emb_dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;architecture&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;conf&#39;</span><span class="p">,</span> <span class="s1">&#39;word&#39;</span><span class="p">,</span> <span class="s1">&#39;dim&#39;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_emb_path</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">involve_all_words_in_pretrained_emb</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_emb_binary_or_text</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_emb_dim</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_emb_type</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s1">&#39;train&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;cache_dir&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cache_dir</span><span class="p">:</span>
+                <span class="c1"># for aether</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cache_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cache_dir</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;normal&#39;</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_cache</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">cache_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="s1">&#39;cache_dir&#39;</span><span class="p">])</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">cache_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tempfile</span><span class="o">.</span><span class="n">gettempdir</span><span class="p">(),</span> <span class="s1">&#39;neuron_blocks&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">string</span><span class="o">.</span><span class="n">ascii_letters</span><span class="o">+</span><span class="n">string</span><span class="o">.</span><span class="n">digits</span><span class="p">,</span> <span class="mi">16</span><span class="p">)))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># for philly mode, we can only save files in model_path or scratch_path</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">cache_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">save_base_dir</span><span class="p">,</span> <span class="s1">&#39;cache&#39;</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">problem_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_dir</span><span class="p">,</span> <span class="s1">&#39;problem.pkl&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_emb_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">emb_pkl_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_dir</span><span class="p">,</span> <span class="s1">&#39;emb.pkl&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">emb_pkl_path</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">tmp_problem_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">save_base_dir</span><span class="p">,</span> <span class="s1">&#39;.necessary_cache&#39;</span><span class="p">,</span> <span class="s1">&#39;problem.pkl&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">problem_path</span> <span class="o">=</span> <span class="n">tmp_problem_path</span> <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">tmp_problem_path</span><span class="p">)</span> <span class="k">else</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">save_base_dir</span><span class="p">,</span> <span class="s1">&#39;necessary_cache&#39;</span><span class="p">,</span> <span class="s1">&#39;problem.pkl&#39;</span><span class="p">)</span>
+
+        <span class="c1"># training params</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">training_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;training_params&#39;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s1">&#39;train&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">optimizer_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;training_params&#39;</span><span class="p">,</span> <span class="s1">&#39;optimizer&#39;</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">optimizer_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;training_params&#39;</span><span class="p">,</span> <span class="s1">&#39;optimizer&#39;</span><span class="p">,</span> <span class="s1">&#39;params&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">clip_grad_norm_max_norm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;training_params&#39;</span><span class="p">,</span> <span class="s1">&#39;clip_grad_norm_max_norm&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;learning_rate&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">learning_rate</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">optimizer_params</span><span class="p">[</span><span class="s1">&#39;lr&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">learning_rate</span>
+
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;batch_size&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">batch_size</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">batch_size_each_gpu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">batch_size</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">batch_size_each_gpu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;training_params&#39;</span><span class="p">,</span> <span class="s1">&#39;batch_size&#39;</span><span class="p">])</span>     <span class="c1">#the batch_size in conf file is the batch_size on each GPU</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lr_decay</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;training_params&#39;</span><span class="p">,</span> <span class="s1">&#39;lr_decay&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>   <span class="c1"># by default, no decay</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">minimum_lr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;training_params&#39;</span><span class="p">,</span> <span class="s1">&#39;minimum_lr&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">epoch_start_lr_decay</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;training_params&#39;</span><span class="p">,</span> <span class="s1">&#39;epoch_start_lr_decay&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;max_epoch&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">max_epoch</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">max_epoch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">max_epoch</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">max_epoch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;training_params&#39;</span><span class="p">,</span> <span class="s1">&#39;max_epoch&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="s1">&#39;inf&#39;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">valid_times_per_epoch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;training_params&#39;</span><span class="p">,</span> <span class="s1">&#39;valid_times_per_epoch&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_num_to_show_results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;training_params&#39;</span><span class="p">,</span> <span class="s1">&#39;batch_num_to_show_results&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;training_params&#39;</span><span class="p">,</span> <span class="s1">&#39;max_lengths&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">use_default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fixed_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;training_params&#39;</span><span class="p">,</span> <span class="s1">&#39;fixed_lengths&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">use_default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fixed_lengths</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">max_lengths</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">device_count</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">batch_size_total</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">device_count</span><span class="p">()</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">batch_num_to_show_results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_num_to_show_results</span> <span class="o">//</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">device_count</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">batch_size_total</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size_each_gpu</span>
+
+
+        <span class="c1"># text preprocessing</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__text_preprocessing</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;training_params&#39;</span><span class="p">,</span> <span class="s1">&#39;text_preprocessing&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="nb">list</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">DBC2SBC</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="s1">&#39;DBC2SBC&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__text_preprocessing</span> <span class="k">else</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unicode_fix</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="s1">&#39;unicode_fix&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__text_preprocessing</span> <span class="k">else</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">remove_stopwords</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="s1">&#39;remove_stopwords&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__text_preprocessing</span> <span class="k">else</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">extra_feature</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">DBC2SBC</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Detect the extra feature </span><span class="si">%s</span><span class="s2">, set the DBC2sbc is False.&quot;</span> <span class="o">%</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">feature_all</span><span class="o">-</span><span class="n">formal_feature</span><span class="p">)))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">unicode_fix</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Detect the extra feature </span><span class="si">%s</span><span class="s2">, set the unicode_fix is False.&quot;</span> <span class="o">%</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">feature_all</span><span class="o">-</span><span class="n">formal_feature</span><span class="p">)))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_stopwords</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Detect the extra feature </span><span class="si">%s</span><span class="s2">, set the remove_stopwords is False.&quot;</span> <span class="o">%</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">feature_all</span><span class="o">-</span><span class="n">formal_feature</span><span class="p">)))</span>
+
+        <span class="k">if</span> <span class="n">ProblemTypes</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">problem_type</span><span class="p">]</span> <span class="o">==</span> <span class="n">ProblemTypes</span><span class="o">.</span><span class="n">sequence_tagging</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">unicode_fix</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;For sequence tagging task, unicode_fix may change the number of words.&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_stopwords</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">remove_stopwords</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;For sequence tagging task, remove stopwords is forbidden! It is disabled now.&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">!=</span> <span class="s1">&#39;cache&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">device_count</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;use_gpu&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">use_gpu</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Activating GPU mode, there are </span><span class="si">%d</span><span class="s2"> GPUs available&quot;</span> <span class="o">%</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">device_count</span><span class="p">())</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">use_gpu</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Activating CPU mode&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">architecture</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;architecture&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_layer_id</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">single_layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">architecture</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;output_layer_flag&#39;</span> <span class="ow">in</span> <span class="n">single_layer</span> <span class="ow">and</span> <span class="n">single_layer</span><span class="p">[</span><span class="s1">&#39;output_layer_flag&#39;</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">output_layer_id</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">single_layer</span><span class="p">[</span><span class="s1">&#39;layer_id&#39;</span><span class="p">])</span>
+
+        <span class="c1"># check CNN layer &amp; change min sentence length</span>
+        <span class="n">cnn_rele_layers</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Conv&#39;</span><span class="p">,</span> <span class="s1">&#39;ConvPooling&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_sentence_len</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">layer_index</span><span class="p">,</span> <span class="n">single_layer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">architecture</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">layer_index</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="nb">sum</span><span class="p">([</span><span class="n">_</span> <span class="o">==</span> <span class="n">single_layer</span><span class="p">[</span><span class="s1">&#39;layer&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">cnn_rele_layers</span><span class="p">]):</span>
+                <span class="c1"># get window_size conf: type maybe int or list</span>
+                <span class="k">for</span> <span class="n">single_conf</span><span class="p">,</span> <span class="n">single_conf_value</span> <span class="ow">in</span> <span class="n">single_layer</span><span class="p">[</span><span class="s1">&#39;conf&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="s1">&#39;window&#39;</span> <span class="ow">in</span> <span class="n">single_conf</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">min_sentence_len</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min_sentence_len</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">single_conf_value</span><span class="p">])))</span>
+                        <span class="k">break</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s1">&#39;train&#39;</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s1">&#39;test&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="n">BaseLossConf</span><span class="o">.</span><span class="n">get_conf</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;loss&#39;</span><span class="p">]))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;metrics&#39;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="s1">&#39;auc&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span> <span class="ow">and</span> <span class="n">ProblemTypes</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">problem_type</span><span class="p">]</span> <span class="o">==</span> <span class="n">ProblemTypes</span><span class="o">.</span><span class="n">classification</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pos_label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_item</span><span class="p">([</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;positive_label&#39;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">use_default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModelConf.get_item"><a class="viewcode-back" href="../ModelConf.html#ModelConf.ModelConf.get_item">[docs]</a>    <span class="k">def</span> <span class="nf">get_item</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">use_default</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            keys:</span>
+<span class="sd">            default: if some key is not found and default is None, we would raise an Exception, except that use_default is True</span>
+<span class="sd">            use_default: if you really want to set default to None, set use_default=True</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">item</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conf</span>
+        <span class="n">valid_keys</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+                <span class="n">item</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+                <span class="n">valid_keys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">error_keys</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">valid_keys</span><span class="p">)</span>
+            <span class="n">error_keys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">use_default</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ConfigurationError</span><span class="p">(</span>
+                    <span class="s2">&quot;The configuration file </span><span class="si">%s</span><span class="s2"> is illegal. There should be an item configuration[</span><span class="si">%s</span><span class="s2">], &quot;</span>
+                    <span class="s2">&quot;but the item </span><span class="si">%s</span><span class="s2"> is not found.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conf_path</span><span class="p">,</span> <span class="s2">&quot;][&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">error_keys</span><span class="p">),</span> <span class="n">key</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;configuration[</span><span class="si">%s</span><span class="s2">] is not found in </span><span class="si">%s</span><span class="s2">, use default value </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="s2">&quot;][&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">error_keys</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">conf_path</span><span class="p">,</span> <span class="nb">repr</span><span class="p">(</span><span class="n">default</span><span class="p">)))</span>
+                <span class="n">item</span> <span class="o">=</span> <span class="n">default</span>
+
+        <span class="k">return</span> <span class="n">item</span></div>
+
+<div class="viewcode-block" id="ModelConf.check_conf"><a class="viewcode-back" href="../ModelConf.html#ModelConf.ModelConf.check_conf">[docs]</a>    <span class="k">def</span> <span class="nf">check_conf</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; verify if the configuration is legal or not</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># In philly mode, ensure the data and model etc. are not the local paths defined in configuration file.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;philly&#39;</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;train_data_path&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train_data_path</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;train_data_path&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_data_path</span><span class="p">),</span> <span class="s1">&#39;In philly mode, but you define a local train_data_path:</span><span class="si">%s</span><span class="s1"> in your configuration file&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_data_path</span>
+            <span class="k">assert</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;valid_data_path&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">valid_data_path</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;valid_data_path&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">valid_data_path</span><span class="p">),</span> <span class="s1">&#39;In philly mode, but you define a local valid_data_path:</span><span class="si">%s</span><span class="s1"> in your configuration file&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">valid_data_path</span>
+            <span class="k">assert</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;test_data_path&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">test_data_path</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;test_data_path&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">test_data_path</span><span class="p">),</span> <span class="s1">&#39;In philly mode, but you define a local test_data_path:</span><span class="si">%s</span><span class="s1"> in your configuration file&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">test_data_path</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s1">&#39;train&#39;</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;model_save_dir&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_save_dir</span><span class="p">,</span> <span class="s1">&#39;In philly mode, you must define a model save dir through the training params&#39;</span>
+                <span class="k">assert</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pretrained_model_path</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_model_path</span><span class="p">),</span> <span class="s1">&#39;In philly mode, but you define a local pretrained model path:</span><span class="si">%s</span><span class="s1"> in your configuration file&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_model_path</span>
+                <span class="k">assert</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pretrained_model_path</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pretrained_emb_path</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_emb_path</span><span class="p">),</span> <span class="s1">&#39;In philly mode, but you define a local pretrained embedding:</span><span class="si">%s</span><span class="s1"> in your configuration file&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_emb_path</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s1">&#39;test&#39;</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s1">&#39;predict&#39;</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">previous_model_path</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">previous_model_path</span><span class="p">),</span> <span class="s1">&#39;In philly mode, but you define a local model trained previously </span><span class="si">%s</span><span class="s1"> in your configuration file&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">previous_model_path</span>
+
+        <span class="c1"># check inputs</span>
+        <span class="c1"># it seems that os.path.isfile cannot detect hdfs files</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s1">&#39;train&#39;</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_data_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Please define train_data_path&quot;</span>
+            <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">train_data_path</span><span class="p">),</span> <span class="s2">&quot;Training data </span><span class="si">%s</span><span class="s2"> does not exist!&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_data_path</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">valid_data_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Please define valid_data_path&quot;</span>
+            <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">valid_data_path</span><span class="p">),</span> <span class="s2">&quot;Training data </span><span class="si">%s</span><span class="s2"> does not exist!&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">valid_data_path</span>
+
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;pretrained_emb_type&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_emb_type</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_emb_type</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;glove&#39;</span><span class="p">,</span> <span class="s1">&#39;word2vec&#39;</span><span class="p">,</span> <span class="s1">&#39;fasttext&#39;</span><span class="p">]),</span> <span class="s1">&#39;Embedding type </span><span class="si">%s</span><span class="s1"> is not supported! We support glove, word2vec, fasttext now.&#39;</span>
+
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;pretrained_emb_binary_or_text&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_emb_binary_or_text</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_emb_binary_or_text</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;text&#39;</span><span class="p">,</span> <span class="s1">&#39;binary&#39;</span><span class="p">]),</span> <span class="s1">&#39;Embedding file type </span><span class="si">%s</span><span class="s1"> is not supported! We support text and binary.&#39;</span>
+
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s1">&#39;test&#39;</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">test_data_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Please define test_data_path&quot;</span>
+            <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">test_data_path</span><span class="p">),</span> <span class="s2">&quot;Training data </span><span class="si">%s</span><span class="s2"> does not exist!&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">test_data_path</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s1">&#39;predict&#39;</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">predict_data_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Please define predict_data_path&quot;</span>
+            <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predict_data_path</span><span class="p">),</span> <span class="s2">&quot;Training data </span><span class="si">%s</span><span class="s2"> does not exist!&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">predict_data_path</span>
+
+        <span class="c1"># check problem types</span>
+        <span class="n">SUPPORTED_PROBLEMS</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">ProblemTypes</span><span class="o">.</span><span class="n">_member_names_</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">problem_type</span> <span class="ow">in</span> <span class="n">SUPPORTED_PROBLEMS</span><span class="p">,</span> <span class="s2">&quot;Data type </span><span class="si">%s</span><span class="s2"> is not supported now. Supported types: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">problem_type</span><span class="p">,</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">SUPPORTED_PROBLEMS</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">ProblemTypes</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">problem_type</span><span class="p">]</span> <span class="o">==</span> <span class="n">ProblemTypes</span><span class="o">.</span><span class="n">sequence_tagging</span><span class="p">:</span>
+            <span class="n">SUPPORTED_TAGGING_SCHEMES</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">TaggingSchemes</span><span class="o">.</span><span class="n">_member_names_</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">tagging_scheme</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;For sequence tagging proble, tagging scheme must be defined at configuration[</span><span class="se">\&#39;</span><span class="s2">inputs</span><span class="se">\&#39;</span><span class="s2">][</span><span class="se">\&#39;</span><span class="s2">tagging_scheme</span><span class="se">\&#39;</span><span class="s2">]!&quot;</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">tagging_scheme</span> <span class="ow">in</span> <span class="n">SUPPORTED_TAGGING_SCHEMES</span><span class="p">,</span> <span class="s2">&quot;Tagging scheme </span><span class="si">%s</span><span class="s2"> is not supported now. Supported schemes: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tagging_scheme</span><span class="p">,</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">SUPPORTED_TAGGING_SCHEMES</span><span class="p">))</span>
+
+            <span class="c1"># the max_lengths of all the inputs and targets should be consistent</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_lengths</span><span class="p">:</span>
+                <span class="n">max_lengths</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_lengths</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">max_lengths</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                    <span class="k">assert</span> <span class="n">max_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">max_lengths</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="s2">&quot;For sequence tagging tasks, the max_lengths of all the inputs and targets should be consistent!&quot;</span>
+
+        <span class="c1"># check appliable metrics</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s1">&#39;train&#39;</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s1">&#39;test&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metrics_post_check</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span> <span class="c1"># saved to check later</span>
+            <span class="n">diff</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">)</span> <span class="o">-</span> <span class="n">SupportedMetrics</span><span class="p">[</span><span class="n">ProblemTypes</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">problem_type</span><span class="p">]]</span>
+            <span class="n">illegal_metrics</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">diff_metric</span> <span class="ow">in</span> <span class="n">diff</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">diff_metric</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;@&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                    <span class="n">field</span><span class="p">,</span> <span class="n">target</span> <span class="o">=</span> <span class="n">diff_metric</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;@&#39;</span><span class="p">)</span>
+                    <span class="c1">#if not field in PredictionTypes[ProblemTypes[self.problem_type]]:</span>
+                    <span class="k">if</span> <span class="n">field</span> <span class="o">!=</span> <span class="s1">&#39;auc&#39;</span><span class="p">:</span>
+                        <span class="n">illegal_metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">diff_metric</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">target</span> <span class="o">!=</span> <span class="s1">&#39;average&#39;</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">metrics_post_check</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">diff_metric</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">illegal_metrics</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Metrics </span><span class="si">%s</span><span class="s2"> are not supported for </span><span class="si">%s</span><span class="s2"> tasks!&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">illegal_metrics</span><span class="p">)),</span> <span class="bp">self</span><span class="o">.</span><span class="n">problem_type</span><span class="p">))</span>
+
+        <span class="c1"># check predict fields</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s1">&#39;predict&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">predict_fields_post_check</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span> <span class="c1"># saved to check later</span>
+            <span class="n">diff</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predict_fields</span><span class="p">)</span> <span class="o">-</span> <span class="n">PredictionTypes</span><span class="p">[</span><span class="n">ProblemTypes</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">problem_type</span><span class="p">]]</span>
+            <span class="n">illegal_fields</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">diff_field</span> <span class="ow">in</span> <span class="n">diff</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">diff_field</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;@&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">diff_field</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;confidence&#39;</span><span class="p">):</span>
+                    <span class="n">field</span><span class="p">,</span> <span class="n">target</span> <span class="o">=</span> <span class="n">diff_field</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;@&#39;</span><span class="p">)</span>
+                    <span class="c1">#if not field in PredictionTypes[ProblemTypes[self.problem_type]]:</span>
+                    <span class="k">if</span> <span class="n">field</span> <span class="o">!=</span> <span class="s1">&#39;confidence&#39;</span><span class="p">:</span>
+                        <span class="n">illegal_fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">diff_field</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># don&#39;t know if the target exists in the output dictionary, check after problem loaded</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">predict_fields_post_check</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">diff_field</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">illegal_fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">diff_field</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">illegal_fields</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;The prediction fields </span><span class="si">%s</span><span class="s2"> is/are not supported!&quot;</span> <span class="o">%</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">illegal_fields</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="ModelConf.check_version_compat"><a class="viewcode-back" href="../ModelConf.html#ModelConf.ModelConf.check_version_compat">[docs]</a>    <span class="k">def</span> <span class="nf">check_version_compat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nb_version</span><span class="p">,</span> <span class="n">conf_version</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; check if the version of toolkit and configuration file is compatible</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            nb_version: x.y.z</span>
+<span class="sd">            conf_version: x.y.z</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            If the x field and y field are both the same, return True, else return False</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nb_version_split</span> <span class="o">=</span> <span class="n">nb_version</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+        <span class="n">conf_version_split</span> <span class="o">=</span> <span class="n">conf_version</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">nb_version_split</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">conf_version_split</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">ConfigurationError</span><span class="p">(</span><span class="s1">&#39;The tool_version field of your configuration is illegal!&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">nb_version_split</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">conf_version_split</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="n">nb_version_split</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">conf_version_split</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+            <span class="k">raise</span> <span class="n">ConfigurationError</span><span class="p">(</span><span class="s1">&#39;The NeuronBlocks version is </span><span class="si">%s</span><span class="s1">, but the configuration version is </span><span class="si">%s</span><span class="s1">, please update your configuration to </span><span class="si">%s</span><span class="s1">.</span><span class="si">%s</span><span class="s1">.X&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">nb_version</span><span class="p">,</span> <span class="n">conf_version</span><span class="p">,</span> <span class="n">nb_version_split</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">nb_version_split</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span></div></div>
+
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Quantus STCA team&lt;quantus_stca@microsoft.com&gt;
+
+    </p>
+  </div> 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

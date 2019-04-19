@@ -1,0 +1,10 @@
+optimizers package
+==================
+
+Module contents
+---------------
+
+.. automodule:: optimizers
+    :members:
+    :undoc-members:
+    :show-inheritance:

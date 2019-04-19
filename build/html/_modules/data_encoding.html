@@ -1,0 +1,260 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>data_encoding &mdash; NeuronBlocks 1.1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> NeuronBlocks
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">Basic block_zoo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html#id15">Attention</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html#id25">embedding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html#id27">Operations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html#id31">Math</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html#id38">Transformer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html#id43">Encoder_Decoder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html#id47">Normalizations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html#id49">Loss Functions</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">NeuronBlocks</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Module code</a> &raquo;</li>
+        
+      <li>data_encoding</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for data_encoding</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) Microsoft Corporation. All rights reserved.</span>
+<span class="c1"># Licensed under the MIT license.</span>
+
+<span class="c1"># add the project root to python path</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">settings</span> <span class="k">import</span> <span class="n">ProblemTypes</span><span class="p">,</span> <span class="n">version</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="kn">from</span> <span class="nn">ModelConf</span> <span class="k">import</span> <span class="n">ModelConf</span>
+<span class="kn">from</span> <span class="nn">problem</span> <span class="k">import</span> <span class="n">Problem</span>
+<span class="kn">from</span> <span class="nn">utils.common_utils</span> <span class="k">import</span> <span class="n">log_set</span><span class="p">,</span> <span class="n">dump_to_pkl</span><span class="p">,</span> <span class="n">load_from_pkl</span>
+
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../data_encoding.html#data_encoding.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">data_path</span><span class="p">,</span> <span class="n">save_path</span><span class="p">):</span>
+    <span class="n">conf</span> <span class="o">=</span> <span class="n">ModelConf</span><span class="p">(</span><span class="s2">&quot;cache&quot;</span><span class="p">,</span> <span class="n">params</span><span class="o">.</span><span class="n">conf_path</span><span class="p">,</span> <span class="n">version</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">ProblemTypes</span><span class="p">[</span><span class="n">conf</span><span class="o">.</span><span class="n">problem_type</span><span class="p">]</span> <span class="o">==</span> <span class="n">ProblemTypes</span><span class="o">.</span><span class="n">sequence_tagging</span><span class="p">:</span>
+        <span class="n">problem</span> <span class="o">=</span> <span class="n">Problem</span><span class="p">(</span><span class="n">conf</span><span class="o">.</span><span class="n">problem_type</span><span class="p">,</span> <span class="n">conf</span><span class="o">.</span><span class="n">input_types</span><span class="p">,</span> <span class="n">conf</span><span class="o">.</span><span class="n">answer_column_name</span><span class="p">,</span>
+            <span class="n">source_with_start</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">source_with_end</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">source_with_unk</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">source_with_pad</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">target_with_start</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">target_with_end</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">target_with_unk</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">target_with_pad</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">same_length</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">with_bos_eos</span><span class="o">=</span><span class="n">conf</span><span class="o">.</span><span class="n">add_start_end_for_seq</span><span class="p">,</span> <span class="n">tagging_scheme</span><span class="o">=</span><span class="n">conf</span><span class="o">.</span><span class="n">tagging_scheme</span><span class="p">,</span>
+            <span class="n">remove_stopwords</span><span class="o">=</span><span class="n">conf</span><span class="o">.</span><span class="n">remove_stopwords</span><span class="p">,</span> <span class="n">DBC2SBC</span><span class="o">=</span><span class="n">conf</span><span class="o">.</span><span class="n">DBC2SBC</span><span class="p">,</span> <span class="n">unicode_fix</span><span class="o">=</span><span class="n">conf</span><span class="o">.</span><span class="n">unicode_fix</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">ProblemTypes</span><span class="p">[</span><span class="n">conf</span><span class="o">.</span><span class="n">problem_type</span><span class="p">]</span> <span class="o">==</span> <span class="n">ProblemTypes</span><span class="o">.</span><span class="n">classification</span> \
+            <span class="ow">or</span> <span class="n">ProblemTypes</span><span class="p">[</span><span class="n">conf</span><span class="o">.</span><span class="n">problem_type</span><span class="p">]</span> <span class="o">==</span> <span class="n">ProblemTypes</span><span class="o">.</span><span class="n">regression</span><span class="p">:</span>
+        <span class="n">problem</span> <span class="o">=</span> <span class="n">Problem</span><span class="p">(</span><span class="n">conf</span><span class="o">.</span><span class="n">problem_type</span><span class="p">,</span> <span class="n">conf</span><span class="o">.</span><span class="n">input_types</span><span class="p">,</span> <span class="n">conf</span><span class="o">.</span><span class="n">answer_column_name</span><span class="p">,</span>
+            <span class="n">source_with_start</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">source_with_end</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">source_with_unk</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">source_with_pad</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">target_with_start</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">target_with_end</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">target_with_unk</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">target_with_pad</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">same_length</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">with_bos_eos</span><span class="o">=</span><span class="n">conf</span><span class="o">.</span><span class="n">add_start_end_for_seq</span><span class="p">,</span> <span class="n">remove_stopwords</span><span class="o">=</span><span class="n">conf</span><span class="o">.</span><span class="n">remove_stopwords</span><span class="p">,</span> <span class="n">DBC2SBC</span><span class="o">=</span><span class="n">conf</span><span class="o">.</span><span class="n">DBC2SBC</span><span class="p">,</span>
+            <span class="n">unicode_fix</span><span class="o">=</span><span class="n">conf</span><span class="o">.</span><span class="n">unicode_fix</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">conf</span><span class="o">.</span><span class="n">problem_path</span><span class="p">):</span>
+        <span class="n">problem</span><span class="o">.</span><span class="n">load_problem</span><span class="p">(</span><span class="n">conf</span><span class="o">.</span><span class="n">problem_path</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Cache loaded!&quot;</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Cache loaded from </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">conf</span><span class="o">.</span><span class="n">problem_path</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Cache does not exist!&quot;</span><span class="p">)</span>
+
+    <span class="n">data</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">target</span> <span class="o">=</span> <span class="n">problem</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">data_path</span><span class="p">,</span> <span class="n">conf</span><span class="o">.</span><span class="n">file_columns</span><span class="p">,</span> <span class="n">conf</span><span class="o">.</span><span class="n">input_types</span><span class="p">,</span> <span class="n">conf</span><span class="o">.</span><span class="n">file_with_col_header</span><span class="p">,</span>
+                                          <span class="n">conf</span><span class="o">.</span><span class="n">object_inputs</span><span class="p">,</span> <span class="n">conf</span><span class="o">.</span><span class="n">answer_column_name</span><span class="p">,</span> <span class="n">conf</span><span class="o">.</span><span class="n">min_sentence_len</span><span class="p">,</span>
+                                          <span class="n">extra_feature</span><span class="o">=</span><span class="n">conf</span><span class="o">.</span><span class="n">extra_feature</span><span class="p">,</span><span class="n">max_lengths</span><span class="o">=</span><span class="n">conf</span><span class="o">.</span><span class="n">max_lengths</span><span class="p">,</span> <span class="n">file_format</span><span class="o">=</span><span class="s1">&#39;tsv&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">save_path</span><span class="p">)):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">save_path</span><span class="p">))</span>
+    <span class="n">dump_to_pkl</span><span class="p">({</span><span class="s1">&#39;data&#39;</span><span class="p">:</span> <span class="n">data</span><span class="p">,</span> <span class="s1">&#39;length&#39;</span><span class="p">:</span> <span class="n">length</span><span class="p">,</span> <span class="s1">&#39;target&#39;</span><span class="p">:</span> <span class="n">target</span><span class="p">},</span> <span class="n">save_path</span><span class="p">)</span></div>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s1">&#39;Data encoding&#39;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;data_path&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;save_path&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--conf_path&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;conf.json&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;configuration path&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--debug&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--force&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">log_set</span><span class="p">(</span><span class="s1">&#39;encoding_data.log&#39;</span><span class="p">)</span>
+
+    <span class="n">params</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_known_args</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">debug</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">debugger</span>
+    <span class="n">main</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">params</span><span class="o">.</span><span class="n">data_path</span><span class="p">,</span> <span class="n">params</span><span class="o">.</span><span class="n">save_path</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Quantus STCA team&lt;quantus_stca@microsoft.com&gt;
+
+    </p>
+  </div> 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
