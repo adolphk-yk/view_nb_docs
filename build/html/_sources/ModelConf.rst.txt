@@ -1,7 +1,0 @@
-ModelConf module
-================
-
-.. automodule:: ModelConf
-    :members:
-    :undoc-members:
-    :show-inheritance:
